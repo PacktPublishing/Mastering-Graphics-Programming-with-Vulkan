@@ -1,1 +1,1 @@
-# -Mastering-Graphics-Programming-with-Vulkan
+# Mastering-Graphics-Programming-with-Vulkan
