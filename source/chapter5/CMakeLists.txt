@@ -45,7 +45,7 @@ endif()
 target_compile_definitions(Chapter5 PRIVATE
     RAPTOR_WORKING_FOLDER="${CMAKE_CURRENT_SOURCE_DIR}"
     RAPTOR_SHADER_FOLDER="${CMAKE_CURRENT_SOURCE_DIR}/shaders/"
-    RAPTOR_DATA_FOLDER="${CMAKE_CURRENT_SOURCE_DIR}/data"
+    RAPTOR_DATA_FOLDER="${CMAKE_SOURCE_DIR}/binaries/data"
 )
 
 target_compile_definitions(Chapter5 PRIVATE
