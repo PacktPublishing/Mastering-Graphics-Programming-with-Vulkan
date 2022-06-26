@@ -1,0 +1,33 @@
+/[Bb]in/
+/[Bb]uild/
+/[Dd]ebug/
+/[Rr]elease/
+/**/.vs/
+/**/x64/
+
+# MSVC user extensions
+*.opensdf
+*.sdf
+*.suo
+*.user
+*.obj
+*.pdb
+*.idb
+*.log
+*.tlog
+*.lastbuildstate
+*.dll
+*.lib
+*.exp
+*.opendb
+*.ini
+*.exe
+*.ilk
+*.cache
+
+# Shader binaries
+*.spv
+
+# VS code
+.vscode
+*.code-workspace

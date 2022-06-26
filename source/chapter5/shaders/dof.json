@@ -1,0 +1,32 @@
+{
+	"name" : "depth_of_field",
+	"pipelines" : [
+		{
+			"name" : "main",
+			"render_pass" : "depth_of_field_pass",
+			"vertex_input" : [
+				{
+					"attribute_location" : 0,
+					"attribute_binding" : 0,
+					"attribute_offset" : 0,
+					"attribute_format" : "Float3",
+					"stream_binding" : 0,
+					"stream_stride" : 12,
+					"stream_rate" : "Vertex"
+				}
+			],
+			"shaders" : [
+				{
+					"stage" : "vertex",
+					"shader" : "dof.glsl",
+					"includes" : ["platform.h"]
+				},
+				{
+					"stage" : "fragment",
+					"shader" : "dof.glsl",
+					"includes" : ["platform.h"]
+				}
+			]
+		}
+	]
+}

@@ -1,0 +1,47 @@
+{
+	"name" : "pbr_lighting",
+	"pipelines" : [
+		{
+			"name" : "main",
+			"vertex_input" : [
+				{
+					"attribute_location" : 0,
+					"attribute_binding" : 0,
+					"attribute_offset" : 0,
+					"attribute_format" : "Float3",
+					"stream_binding" : 0,
+					"stream_stride" : 12,
+					"stream_rate" : "Vertex"
+				}
+			],
+			"render_pass" : "lighting_pass",
+			"depth" : {
+				"write" : false,
+				"test" : "never"
+			},
+			"shaders" : [
+				{
+					"stage" : "vertex",
+					"shader" : "pbr.glsl",
+					"includes" : ["platform.h"]
+				},
+				{
+					"stage" : "fragment",
+					"shader" : "pbr.glsl",
+					"includes" : ["platform.h", "scene.h", "lighting.h"]
+				}
+			]
+		},
+		{
+			"name" : "compute",
+			"render_pass" : "lighting_pass",
+			"shaders" : [
+				{
+					"stage" : "compute",
+					"shader" : "pbr.glsl",
+					"includes" : ["platform.h", "scene.h", "lighting.h"]
+				}
+			]
+		}
+	]
+}

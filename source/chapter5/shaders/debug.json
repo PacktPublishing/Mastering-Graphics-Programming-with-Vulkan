@@ -1,0 +1,55 @@
+{
+	"name" : "debug",
+	"pipelines" : [
+		{
+			"name" : "debug_mesh",
+			"vertex_input" : [
+				{
+					"attribute_location" : 0,
+					"attribute_binding" : 0,
+					"attribute_offset" : 0,
+					"attribute_format" : "Float3",
+					"stream_binding" : 0,
+					"stream_stride" : 12,
+					"stream_rate" : "Vertex"
+				}
+			],
+			"render_pass" : "debug_pass",
+			"depth" : {
+				"write" : false,
+				"test" : "always"
+			},
+			"cull": "back",
+			"topology": "triangle_list",
+			"shaders" : [
+				{
+					"stage" : "vertex",
+					"shader" : "debug_mesh.glsl",
+					"includes" : [ "platform.h", "scene.h" ]
+				},
+				{
+					"stage" : "fragment",
+					"shader" : "debug_mesh.glsl",
+					"includes" : [ "platform.h" ]
+				}
+			]
+		},
+		{
+			"name" : "debug_line",
+			"inherit_from": "debug_mesh",
+			"topology": "line_list",
+			"shaders" : [
+				{
+					"stage" : "vertex",
+					"shader" : "debug_line.glsl",
+					"includes" : [ "platform.h", "scene.h" ]
+				},
+				{
+					"stage" : "fragment",
+					"shader" : "debug_line.glsl",
+					"includes" : [ "platform.h" ]
+				}
+			]
+		}
+	]
+}

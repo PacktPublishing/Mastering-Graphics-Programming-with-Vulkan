@@ -1,0 +1,138 @@
+{
+    "name": "gltf_graph",
+    "passes":
+    [
+        {
+            "inputs":
+            [
+                {
+                    "type": "attachment",
+                    "name": "depth"
+                }
+            ],
+            "name": "gbuffer_pass",
+            "outputs":
+            [
+                {
+                    "type": "attachment",
+                    "name": "gbuffer_colour",
+                    "format": "VK_FORMAT_B8G8R8A8_UNORM",
+                    "resolution": [ 1280, 800 ],
+                    "op": "VK_ATTACHMENT_LOAD_OP_CLEAR"
+                },
+                {
+                    "type": "attachment",
+                    "name": "gbuffer_normals",
+                    "format": "VK_FORMAT_R16G16B16A16_SFLOAT",
+                    "resolution": [ 1280, 800 ],
+                    "op": "VK_ATTACHMENT_LOAD_OP_CLEAR"
+                },
+                {
+                    "type": "attachment",
+                    "name": "gbuffer_metallic_roughness_occlusion",
+                    "format": "VK_FORMAT_B8G8R8A8_UNORM",
+                    "resolution": [ 1280, 800 ],
+                    "op": "VK_ATTACHMENT_LOAD_OP_CLEAR"
+                },
+                {
+                    "type": "attachment",
+                    "name": "gbuffer_position",
+                    "format": "VK_FORMAT_R16G16B16A16_SFLOAT",
+                    "resolution": [ 1280, 800 ],
+                    "op": "VK_ATTACHMENT_LOAD_OP_CLEAR"
+                }
+            ]
+        },
+        {
+            "inputs":
+            [
+                {
+                    "type": "attachment",
+                    "name": "lighting"
+                },
+                {
+                    "type": "attachment",
+                    "name": "depth"
+                }
+            ],
+            "name": "transparent_pass",
+            "outputs":
+            [
+                {
+                    "type": "reference",
+                    "name": "lighting"
+                }
+            ]
+        },
+        {
+            "inputs":
+            [
+                {
+                    "type": "reference",
+                    "name": "lighting"
+                },
+                {
+                    "type": "reference",
+                    "name": "depth"
+                }
+            ],
+            "name": "depth_of_field_pass",
+            "outputs":
+            [
+                {
+                    "type": "attachment",
+                    "name": "final",
+                    "format": "VK_FORMAT_B8G8R8A8_UNORM",
+                    "resolution": [ 1280, 800 ],
+                    "op": "VK_ATTACHMENT_LOAD_OP_CLEAR"
+                }
+            ]
+        },
+        {
+            "inputs":
+            [
+                {
+                    "type": "texture",
+                    "name": "gbuffer_colour"
+                },
+                {
+                    "type": "texture",
+                    "name": "gbuffer_normals"
+                },
+                {
+                    "type": "texture",
+                    "name": "gbuffer_metallic_roughness_occlusion"
+                },
+                {
+                    "type": "texture",
+                    "name": "gbuffer_position"
+                }
+            ],
+            "name": "lighting_pass",
+            "outputs":
+            [
+                {
+                    "type": "attachment",
+                    "name": "lighting",
+                    "format": "VK_FORMAT_B8G8R8A8_UNORM",
+                    "resolution": [ 1280, 800 ],
+                    "op": "VK_ATTACHMENT_LOAD_OP_CLEAR"
+                }
+            ]
+        },
+        {
+            "inputs": [],
+            "name": "depth_pre_pass",
+            "outputs":
+            [
+                {
+                    "type": "attachment",
+                    "name": "depth",
+                    "format": "VK_FORMAT_D32_SFLOAT",
+                    "resolution": [ 1280, 800 ],
+                    "op": "VK_ATTACHMENT_LOAD_OP_CLEAR"
+                }
+            ]
+        }
+    ]
+}

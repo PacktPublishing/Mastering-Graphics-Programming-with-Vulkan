@@ -1,0 +1,71 @@
+{
+	"name" : "main",
+	"pipelines" : [
+		{
+			"name" : "main_no_cull",
+			"vertex_input" : [
+				{
+					"attribute_location" : 0,
+					"attribute_binding" : 0,
+					"attribute_offset" : 0,
+					"attribute_format" : "float3",
+					"stream_binding" : 0,
+					"stream_stride" : 12,
+					"stream_rate" : "vertex"
+				},
+				{
+					"attribute_location" : 1,
+					"attribute_binding" : 1,
+					"attribute_offset" : 0,
+					"attribute_format" : "float4",
+					"stream_binding" : 1,
+					"stream_stride" : 16,
+					"stream_rate" : "vertex"
+				},
+				{
+					"attribute_location" : 2,
+					"attribute_binding" : 2,
+					"attribute_offset" : 0,
+					"attribute_format" : "float3",
+					"stream_binding" : 2,
+					"stream_stride" : 12,
+					"stream_rate" : "vertex"
+				},
+				{
+					"attribute_location" : 3,
+					"attribute_binding" : 3,
+					"attribute_offset" : 0,
+					"attribute_format" : "float2",
+					"stream_binding" : 3,
+					"stream_stride" : 8,
+					"stream_rate" : "vertex"
+				}
+			],
+			"render_pass" : "swapchain",
+			"depth" : {
+				"write" : true,
+				"test" : "less_or_equal"
+			},
+			"blend" : {
+				"source_color" : "src_alpha",
+				"destination_color" : "one_minus_src_alpha",
+				"blend_operation" : "add"
+			},
+			"shaders" : [
+				{
+					"stage" : "vertex",
+					"shader" : "main.vert"
+				},
+				{
+					"stage" : "fragment",
+					"shader" : "main.frag"
+				}
+			]
+		},
+		{
+			"name" : "main_cull",
+			"inherit_from" : "main_no_cull",
+			"cull" : "back"
+		}
+	]
+}

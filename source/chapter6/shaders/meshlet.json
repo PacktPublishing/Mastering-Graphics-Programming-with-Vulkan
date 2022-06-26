@@ -1,0 +1,103 @@
+{
+	"name" : "meshlet",
+	"pipelines" : [
+		{
+			"name" : "depth_pre",
+			"render_pass" : "depth_pre_pass",
+			"depth" : {
+				"write" : true,
+				"test" : "less_or_equal"
+			},
+			"shaders" : [
+				{
+					"stage" : "mesh",
+					"shader" : "meshlet.glsl",
+					"includes" : ["platform.h", "scene.h", "mesh.h"]
+				},
+				{
+					"stage" : "task",
+					"shader" : "meshlet.glsl",
+					"includes" : ["platform.h", "scene.h", "mesh.h", "debug_rendering.h"]
+				}
+			]
+		},
+		{
+			"name" : "gbuffer_culling",
+			"render_pass" : "gbuffer_pass_early",
+			"depth" : {
+				"write" : true,
+				"test" : "less_or_equal"
+			},
+			"shaders" : [
+				{
+					"stage" : "mesh",
+					"shader" : "meshlet.glsl",
+					"includes" : ["platform.h", "scene.h", "mesh.h"]
+				},
+				{
+					"stage" : "task",
+					"shader" : "meshlet.glsl",
+					"includes" : ["platform.h", "scene.h", "mesh.h", "debug_rendering.h"]
+				},
+				{
+					"stage" : "fragment",
+					"shader" : "meshlet.glsl",
+					"includes" : ["platform.h", "scene.h", "mesh.h"]
+				}
+			]
+		},
+		{
+			"name" : "transparent_no_cull",
+			"render_pass" : "swapchain",
+			"depth" : {
+				"write" : false,
+				"test" : "less_or_equal"
+			},
+			"blend": [
+				{
+					"src_colour": "SRC_ALPHA",
+					"dst_colour": "ONE_MINUS_SRC_ALPHA",
+					"op": "ADD",
+					"enable": "true"
+				}
+			],
+			"shaders" : [
+				{
+					"stage" : "mesh",
+					"shader" : "meshlet.glsl",
+					"includes" : ["platform.h", "scene.h", "mesh.h"]
+				},
+				{
+					"stage" : "task",
+					"shader" : "meshlet.glsl",
+					"includes" : ["platform.h", "scene.h", "mesh.h", "debug_rendering.h"]
+				},
+				{
+					"stage" : "fragment",
+					"shader" : "meshlet.glsl",
+					"includes" : ["platform.h", "scene.h", "mesh.h", "lighting.h"]
+				}
+			]
+		},
+		{
+			"name" : "mesh",
+			"render_pass" : "mesh_pass",
+			"depth" : {
+				"write" : true,
+				"test" : "less_or_equal"
+			},
+			"shaders" : [
+				{
+					"stage" : "mesh",
+					"shader" : "meshlet.glsl",
+					"includes" : ["platform.h", "scene.h", "mesh.h"]
+				},
+				{
+					"stage" : "fragment",
+					"shader" : "meshlet.glsl",
+					"includes" : ["platform.h", "scene.h", "mesh.h"]
+				}
+			]
+		}
+	]
+}
