@@ -94,7 +94,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_DEBUG;_CONSOLE;RAPTOR_SPV_FOLDER="../source/chapter5/shaders/";RAPTOR_SHADER_FOLDER="../source/chapter5/shaders/";RAPTOR_WORKING_FOLDER="../source/chapter5/";RAPTOR_DATA_FOLDER="data/";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_DEBUG;_CONSOLE;RAPTOR_SPV_FOLDER="../source/chapter5/shaders/";RAPTOR_SHADER_FOLDER="../source/chapter5/shaders/";RAPTOR_WORKING_FOLDER="../source/chapter5/";RAPTOR_DATA_FOLDER="../binaries/data/";%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>../source/raptor;../source;../source/chapter5;$(VULKAN_SDK)/include;../binaries/SDL2-2.0.18/include;../binaries/assimp/include</AdditionalIncludeDirectories>
     </ClCompile>
@@ -119,7 +119,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;RAPTOR_SPV_FOLDER="../source/chapter5/shaders/";RAPTOR_SHADER_FOLDER="../source/chapter5/shaders/";RAPTOR_WORKING_FOLDER="../source/chapter5/";RAPTOR_DATA_FOLDER="data/";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;RAPTOR_SPV_FOLDER="../source/chapter5/shaders/";RAPTOR_SHADER_FOLDER="../source/chapter5/shaders/";RAPTOR_WORKING_FOLDER="../source/chapter5/";RAPTOR_DATA_FOLDER="../binaries/data/";%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>../source/raptor;../source;../source/chapter5;$(VULKAN_SDK)/include;../binaries/SDL2-2.0.18/include;../binaries/assimp/include</AdditionalIncludeDirectories>
     </ClCompile>

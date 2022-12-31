@@ -1,0 +1,658 @@
+{
+    "name": "gltf_graph",
+    "passes":
+    [
+        {
+            "name": "ray_tracing_test",
+            "type": "ray_tracing",
+            "enabled": false,
+            "outputs":
+            [
+                {
+                    "type": "texture",
+                    "name": "final",
+                    "format": "VK_FORMAT_B8G8R8A8_UNORM",
+                    "resolution": [ 1280, 800 ],
+                    "load_operation": "clear",
+                    "clear_color":[0, 0, 0, 1]
+                }
+            ]
+        },
+        {
+            "name": "mesh_occlusion_early_pass",
+            "type": "compute",
+            "outputs":
+            [
+                {
+                    "type": "buffer",
+                    "name": "early_mesh_indirect_draw_list"
+                },
+                {
+                    "type": "buffer",
+                    "name": "early_task_indirect_draw_list"
+                }
+            ]
+        },
+        {
+            "inputs":
+            [
+                {
+                    "type": "texture",
+                    "name": "depth_pyramid"
+                }
+            ],
+            "name": "mesh_occlusion_late_pass",
+            "type": "compute",
+            "outputs":
+            [
+                {
+                    "type": "buffer",
+                    "name": "late_mesh_indirect_draw_list"
+                },
+                {
+                    "type": "buffer",
+                    "name": "late_task_indirect_draw_list"
+                }
+            ]
+        },
+        {
+            "inputs":
+            [
+                {
+                    "type": "buffer",
+                    "name": "early_mesh_indirect_draw_list"
+                },
+                {
+                    "type": "buffer",
+                    "name": "early_task_indirect_draw_list"
+                }
+            ],
+            "name": "gbuffer_pass_early",
+            "outputs":
+            [
+                {
+                    "type": "attachment",
+                    "name": "gbuffer_colour",
+                    "format": "VK_FORMAT_B8G8R8A8_UNORM",
+                    "resolution": [ 1280, 800 ],
+                    "load_operation": "clear",
+                    "clear_color":[0.529, 0.807, 0.921, 1]
+                },
+                {
+                    "type": "attachment",
+                    "name": "gbuffer_normals",
+                    "format": "VK_FORMAT_R16G16_SFLOAT",
+                    "resolution": [ 1280, 800 ],
+                    "load_operation": "clear",
+                    "clear_color":[0.0, 0.0, 0.0, 0.0]
+                },
+                {
+                    "type": "attachment",
+                    "name": "gbuffer_occlusion_roughness_metalness",
+                    "format": "VK_FORMAT_B10G11R11_UFLOAT_PACK32",
+                    "resolution": [ 1280, 800 ],
+                    "load_operation": "clear",
+                    "clear_color":[0.0, 0.0, 0.0, 0.0]
+                },
+                {
+                    "type": "attachment",
+                    "name": "gbuffer_emissive",
+                    "format": "VK_FORMAT_B10G11R11_UFLOAT_PACK32",
+                    "resolution": [ 1280, 800 ],
+                    "load_operation": "clear",
+                    "clear_color":[0.0, 0.0, 0.0, 0.0]
+                },
+                {
+                    "type": "attachment",
+                    "name": "mesh_id",
+                    "format": "VK_FORMAT_R32_UINT",
+                    "resolution": [ 1280, 800 ],
+                    "load_operation": "clear",
+                    "clear_color": [0.0, 0.0, 0.0, 0.0]
+                },
+                {
+                    "type": "attachment",
+                    "name": "depth_normal_dd",
+                    "format": "VK_FORMAT_R16G16_SFLOAT",
+                    "resolution": [ 1280, 800 ],
+                    "load_operation": "clear",
+                    "clear_color":[0.0, 0.0, 0.0, 0.0]
+                },
+                {
+                    "type": "attachment",
+                    "name": "depth",
+                    "format": "VK_FORMAT_D32_SFLOAT",
+                    "resolution": [ 1280, 800 ],
+                    "load_operation": "clear",
+                    "clear_depth" : 1.0,
+                    "clear_stencil" : 0
+                }
+            ]
+        },
+        {
+            "inputs":
+            [
+                {
+                    "type": "buffer",
+                    "name": "late_mesh_indirect_draw_list"
+                },
+                {
+                    "type": "buffer",
+                    "name": "late_task_indirect_draw_list"
+                },
+                {
+                    "type": "attachment",
+                    "name": "gbuffer_colour"
+                },
+                {
+                    "type": "attachment",
+                    "name": "gbuffer_normals"
+                },
+                {
+                    "type": "attachment",
+                    "name": "gbuffer_occlusion_roughness_metalness"
+                },
+                {
+                    "type": "attachment",
+                    "name": "gbuffer_emissive"
+                },
+                {
+                    "type": "attachment",
+                    "name": "mesh_id"
+                },
+                {
+                    "type": "attachment",
+                    "name": "depth_normal_dd"
+                },
+                {
+                    "type": "attachment",
+                    "name": "depth"
+                },
+                {
+                    "type": "texture",
+                    "name": "depth_pyramid"
+                }
+            ],
+            "outputs":
+            [
+                {
+                    "type": "reference",
+                    "name": "gbuffer_colour"
+                },
+                {
+                    "type": "reference",
+                    "name": "gbuffer_normals"
+                },
+                {
+                    "type": "reference",
+                    "name": "gbuffer_occlusion_roughness_metalness"
+                },
+                {
+                    "type": "reference",
+                    "name": "gbuffer_emissive"
+                },
+                {
+                    "type": "reference",
+                    "name": "mesh_id"
+                },
+                {
+                    "type": "reference",
+                    "name": "depth_normal_dd"
+                }
+            ],
+            "name": "gbuffer_pass_late"
+        },
+        {
+            "inputs":
+            [
+                {
+                    "type": "texture",
+                    "name": "depth"
+                }
+            ],
+            "name": "depth_pyramid_pass",
+            "type": "compute",
+            "outputs":
+            [
+                {
+                    "type": "texture",
+                    "external": true,
+                    "name": "depth_pyramid"
+                }
+            ]
+        },
+        {
+            "inputs":
+            [
+                {
+                    "type": "attachment",
+                    "name": "final"
+                },
+                {
+                    "type": "attachment",
+                    "name": "depth"
+                }
+            ],
+            "name": "transparent_pass"
+        },
+        {
+            "inputs":
+            [
+                {
+                    "type": "reference",
+                    "name": "lighting"
+                },
+                {
+                    "type": "reference",
+                    "name": "depth"
+                }
+            ],
+            "name": "depth_of_field_pass",
+            "enabled": false,
+            "outputs":
+            [
+                {
+                    "type": "attachment",
+                    "name": "final",
+                    "format": "VK_FORMAT_B8G8R8A8_UNORM",
+                    "resolution": [ 1280, 800 ],
+                    "load_operation": "clear",
+                    "clear_color":[0, 0, 0, 1]
+                }
+            ]
+        },
+        {
+            "inputs":
+            [
+                {
+                    "type": "attachment",
+                    "name": "final"
+                },
+                {
+                    "type": "attachment",
+                    "name": "depth"
+                }
+            ],
+            "name": "debug_pass"
+        },
+        {
+            "inputs":
+            [
+                {
+                    "type": "texture",
+                    "name": "gbuffer_colour"
+                },
+                {
+                    "type": "texture",
+                    "name": "gbuffer_normals"
+                },
+                {
+                    "type": "texture",
+                    "name": "gbuffer_occlusion_roughness_metalness"
+                },
+                {
+                    "type": "texture",
+                    "name": "gbuffer_emissive"
+                },
+                {
+                    "type": "texture",
+                    "name": "depth"
+                },
+                {
+                    "type": "texture",
+                    "name": "shadow_visibility"
+                },
+                {
+                    "type": "shading_rate",
+                    "name": "shading_rate_image"
+                },
+                {
+                    "type": "texture",
+                    "name": "indirect_lighting"
+                },
+                {
+                    "type": "texture",
+                    "name": "svgf_output"
+                }
+            ],
+            "name": "lighting_pass",
+            "type": "compute",
+            "outputs":
+            [
+                {
+                    "type": "attachment",
+                    "name": "final",
+                    "format": "VK_FORMAT_B8G8R8A8_UNORM",
+                    "resolution": [ 1280, 800 ],
+                    "load_operation": "clear",
+                    "clear_color":[0, 0, 0, 1]
+                }
+            ]
+        },
+        {
+            "inputs":
+            [
+                {
+                    "type" : "texture",
+                    "name" : "dummy_resource"
+                }
+            ],
+            "name": "depth_pre_pass",
+            "enabled": false,
+            "outputs":
+            [
+                {
+                    "type": "attachment",
+                    "name": "depth",
+                    "format": "VK_FORMAT_D32_SFLOAT",
+                    "resolution": [ 1280, 800 ],
+                    "load_operation": "clear",
+                    "clear_depth" : 1.0,
+                    "clear_stencil" : 0
+                }
+            ]
+        },
+        {
+            "inputs":
+            [
+                {
+                    "type": "texture",
+                    "name": "dummy_resource"
+                }
+            ],
+            "name": "point_shadows_pass",
+            "enabled": false,
+            "type": "compute",
+            "outputs":
+            [
+                {
+                    "type": "texture",
+                    "external": true,
+                    "name": "point_shadows_depth"
+                }
+            ]
+        },
+        {
+            "inputs":
+            [
+                {
+                    "type": "texture",
+                    "name": "dummy_resource"
+                }
+            ],
+            "name": "volumetric_fog_pass",
+            "enabled": true,
+            "type": "compute",
+            "outputs":
+            [
+                {
+                    "type": "texture",
+                    "external": true,
+                    "name": "volumetric_fog_texture"
+                }
+            ]
+        },
+        {
+            "name": "temporal_anti_aliasing_pass",
+            "inputs":
+            [
+                {
+                    "type": "texture",
+                    "name": "final"
+                },
+                {
+                    "type": "texture",
+                    "name": "depth"
+                },
+                {
+                    "type": "texture",
+                    "name": "motion_vectors"
+                }
+            ],
+            "enabled": true,
+            "type": "compute",
+            "outputs":
+            [
+                {
+                    "type": "texture",
+                    "external": true,
+                    "name": "taa_output"
+                }
+            ]
+        },
+        {
+            "name": "motion_vector_pass",
+            "inputs":
+            [
+                {
+                    "type": "texture",
+                    "name": "depth"
+                },
+                {
+                    "type": "texture",
+                    "name": "gbuffer_normals"
+                }
+            ],
+            "enabled": true,
+            "type": "compute",
+            "outputs":
+            [
+                {
+                    "type": "attachment",
+                    "name": "motion_vectors",
+                    "format": "VK_FORMAT_R16G16_SFLOAT",
+                    "resolution": [ 1280, 800 ],
+                    "load_operation": "clear",
+                    "clear_color":[0.0, 0.0, 0.0, 0.0]
+                },
+                {
+                    "type": "attachment",
+                    "name": "visibility_motion_vectors",
+                    "format": "VK_FORMAT_R16G16_SFLOAT",
+                    "resolution": [ 1280, 800 ],
+                    "load_operation": "clear",
+                    "clear_color":[0.0, 0.0, 0.0, 0.0]
+                }
+            ]
+        },
+        {
+            "name": "shadow_visibility_pass",
+            "inputs":
+            [
+                {
+                    "type": "texture",
+                    "name": "depth"
+                },
+                {
+                    "type": "texture",
+                    "name": "visibility_motion_vectors"
+                }
+            ],
+            "enabled": true,
+            "type": "compute",
+            "outputs":
+            [
+                {
+                    "type": "texture",
+                    "name": "shadow_visibility",
+                    "external": true
+                }
+            ]
+        },
+        {
+            "name": "indirect_lighting_pass",
+            "inputs":
+            [
+                {
+                    "type": "texture",
+                    "name": "gbuffer_normals"
+                },
+                {
+                    "type": "texture",
+                    "name": "depth_pyramid"
+                },
+                {
+                    "type": "texture",
+                    "name": "depth"
+                }
+            ],
+            "type": "ray_tracing",
+            "enabled": true,
+            "outputs":
+            [
+                {
+                    "type": "texture",
+                    "name": "indirect_lighting",
+                    "external": true
+                }
+            ]
+        },
+        {
+            "name": "reflections_pass",
+            "inputs":
+            [
+                {
+                    "type": "texture",
+                    "name": "gbuffer_normals"
+                },
+                {
+                    "type": "texture",
+                    "name": "gbuffer_occlusion_roughness_metalness"
+                },
+                {
+                    "type": "texture",
+                    "name": "depth"
+                },
+                {
+                    "type": "texture",
+                    "name": "indirect_lighting"
+                }
+            ],
+            "type": "ray_tracing",
+            "enabled": true,
+            "outputs":
+            [
+                {
+                    "type": "texture",
+                    "name": "reflections",
+                    "external": true
+                }
+            ]
+        },
+        {
+            "name": "svgf_accumulation_pass",
+            "inputs":
+            [
+                {
+                    "type": "texture",
+                    "name": "gbuffer_normals"
+                },
+                {
+                    "type": "texture",
+                    "name": "reflections"
+                },
+                {
+                    "type": "texture",
+                    "name": "depth"
+                },
+                {
+                    "type": "texture",
+                    "name": "motion_vectors"
+                }
+            ],
+            "type": "compute",
+            "enabled": true,
+            "outputs":
+            [
+                {
+                    "type": "attachment",
+                    "name": "integrated_reflection_color",
+                    "format": "VK_FORMAT_B10G11R11_UFLOAT_PACK32",
+                    "resolution": [ 1280, 800 ],
+                    "load_operation": "clear",
+                    "clear_color":[0.0, 0.0, 0.0, 0.0]
+                },
+                {
+                    "type": "attachment",
+                    "name": "integrated_moments",
+                    "format": "VK_FORMAT_R16G16_SFLOAT",
+                    "resolution": [ 1280, 800 ],
+                    "load_operation": "clear",
+                    "clear_color":[0.0, 0.0, 0.0, 0.0]
+                },
+                {
+                    "type": "texture",
+                    "name": "reflections_history",
+                    "external": true
+                },
+                {
+                    "type": "texture",
+                    "name": "moments_history",
+                    "external": true
+                },
+                {
+                    "type": "texture",
+                    "name": "normals_history",
+                    "external": true
+                },
+                {
+                    "type": "texture",
+                    "name": "mesh_id_history",
+                    "external": true
+                },
+                {
+                    "type": "texture",
+                    "name": "depth_history",
+                    "external": true
+                }
+            ]
+        },
+        {
+            "name": "svgf_variance_pass",
+            "inputs":
+            [
+                {
+                    "type": "texture",
+                    "name": "integrated_moments"
+                }
+            ],
+            "type": "compute",
+            "enabled": true,
+            "outputs":
+            [
+                {
+                    "type": "attachment",
+                    "name": "svgf_variance",
+                    "format": "VK_FORMAT_R32_SFLOAT",
+                    "resolution": [ 1280, 800 ],
+                    "load_operation": "clear",
+                    "clear_color":[0.0, 0.0, 0.0, 0.0]
+                }
+            ]
+        },
+        {
+            "name": "svgf_wavelet_pass",
+            "inputs":
+            [
+                {
+                    "type": "texture",
+                    "name": "integrated_reflection_color"
+                },
+                {
+                    "type": "texture",
+                    "name": "svgf_variance"
+                }
+            ],
+            "type": "compute",
+            "enabled": true,
+            "outputs":
+            [
+                {
+                    "type": "texture",
+                    "name": "svgf_output",
+                    "external": true
+                }
+            ]
+        }
+    ]
+}

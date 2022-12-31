@@ -3,6 +3,8 @@
 #include "foundation/platform.hpp"
 #include "foundation/numerics.hpp"
 
+#include "external/cglm/struct/affine.h"
+#include "external/cglm/struct/cam.h"
 #include "external/imgui/imgui.h"
 
 namespace raptor {
@@ -53,8 +55,8 @@ void GameCamera::update( InputService* input, u32 window_width, u32 window_heigh
     if ( input->is_mouse_dragging( MOUSE_BUTTONS_RIGHT ) && !ImGui::IsAnyItemHovered() ) {
 
         if ( ignore_dragging_frames == 0 ) {
-            target_yaw += ( input->mouse_position.x - roundu32(window_width / 2.f) ) * mouse_sensitivity * delta_time;
-            target_pitch += ( input->mouse_position.y - roundu32(window_height / 2.f) ) * mouse_sensitivity * delta_time;
+            target_yaw -= ( input->mouse_position.x - roundu32(window_width / 2.f) ) * mouse_sensitivity * delta_time;
+            target_pitch -= ( input->mouse_position.y - roundu32(window_height / 2.f) ) * mouse_sensitivity * delta_time;
         } else {
             --ignore_dragging_frames;
         }
@@ -94,9 +96,9 @@ void GameCamera::update( InputService* input, u32 window_width, u32 window_heigh
     }
 
     if ( input->is_key_down( KEY_UP ) || input->is_key_down( KEY_W ) ) {
-        camera_movement = glms_vec3_add( camera_movement, glms_vec3_scale( camera.direction, -camera_movement_delta ) );
-    } else if ( input->is_key_down( KEY_DOWN ) || input->is_key_down( KEY_S ) ) {
         camera_movement = glms_vec3_add( camera_movement, glms_vec3_scale( camera.direction, camera_movement_delta ) );
+    } else if ( input->is_key_down( KEY_DOWN ) || input->is_key_down( KEY_S ) ) {
+        camera_movement = glms_vec3_add( camera_movement, glms_vec3_scale( camera.direction, -camera_movement_delta ) );
     }
 
     target_movement = glms_vec3_add( ( vec3s& )target_movement, camera_movement );
@@ -112,6 +114,17 @@ void GameCamera::update( InputService* input, u32 window_width, u32 window_heigh
         const f32 tween_position_speed = movement_speed * delta_time;
         camera.position = lerp3( camera.position, target_movement, 0.9f, tween_position_speed );
     }
+}
+
+void GameCamera::apply_jittering( f32 x, f32 y ) {
+    // Reset camera projection
+    camera.calculate_projection_matrix();
+
+    //camera.projection.m20 += x;
+    //camera.projection.m21 += y;
+    mat4s jittering_matrix = glms_translate_make( { x, y, 0.0f } );
+    camera.projection = glms_mat4_mul( jittering_matrix, camera.projection );
+    camera.calculate_view_projection();
 }
 
 } // namespace raptor

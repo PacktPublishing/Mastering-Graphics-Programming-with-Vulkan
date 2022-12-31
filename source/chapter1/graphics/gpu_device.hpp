@@ -80,6 +80,7 @@ struct GPUTimestampManager {
 struct DeviceCreation {
 
     Allocator*                      allocator       = nullptr;
+    StackAllocator*                 temporary_allocator = nullptr;
     void*                           window          = nullptr; // Pointer to API-specific window: SDL_Window, GLFWWindow
     u16                             width           = 1;
     u16                             height          = 1;
@@ -90,6 +91,7 @@ struct DeviceCreation {
 
     DeviceCreation&                 set_window( u32 width, u32 height, void* handle );
     DeviceCreation&                 set_allocator( Allocator* allocator );
+    DeviceCreation&                 set_linear_allocator( StackAllocator* allocator );
 
 }; // struct DeviceCreation
 
@@ -144,6 +146,8 @@ struct GpuDevice : public Service {
     void                            set_present_mode( PresentMode::Enum mode );
 
     void                            frame_counters_advance();
+
+    VkShaderModuleCreateInfo        compile_shader( cstring code, u32 code_size, VkShaderStageFlagBits stage, cstring name );
 
     // Swapchain //////////////////////////////////////////////////////////
     void                            create_swapchain();
@@ -229,6 +233,7 @@ struct GpuDevice : public Service {
     StringBuffer                    string_buffer;
 
     Allocator*                      allocator;
+    StackAllocator*                 temporary_allocator;
 
     u32                             dynamic_max_per_frame_size;
     BufferHandle                    dynamic_buffer;

@@ -1,0 +1,16 @@
+{
+	"name" : "cloth",
+	"pipelines" : [
+		{
+			"name" : "compute",
+			"render_pass" : "",
+			"shaders" : [
+				{
+					"stage" : "compute",
+					"shader" : "cloth.glsl",
+					"includes" : [ "platform.h" ]
+				}
+			]
+		}
+	]
+}

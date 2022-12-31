@@ -33,8 +33,8 @@ struct SceneGraph {
     void                set_local_matrix( u32 node_index, const mat4s& local_matrix );
     void                set_debug_data( u32 node_index, cstring name );
 
-    ArrayAligned<mat4s, 16> local_matrices;
-    ArrayAligned<mat4s, 16> world_matrices;
+    Array<mat4s>        local_matrices;
+    Array<mat4s>        world_matrices;
     Array<Hierarchy>    nodes_hierarchy;
     Array< SceneGraphNodeDebugData> nodes_debug_data;
 

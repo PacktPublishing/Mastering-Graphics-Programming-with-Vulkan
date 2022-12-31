@@ -1,0 +1,443 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="RaptorEngine">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="RaptorEngine\Foundation">
+      <UniqueIdentifier>{e0eed415-50c8-4993-a286-0e4f54e22fa6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="RaptorEngine\Graphics">
+      <UniqueIdentifier>{4ba1f19d-64d0-4203-8e87-b06ddd636bf4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="RaptorEngine\External">
+      <UniqueIdentifier>{fc80c895-37d7-4829-8540-29a9996c7e5f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ImGUI">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="RaptorEngine\Application">
+      <UniqueIdentifier>{f21935fc-d422-4387-893d-e61258d8eb7d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{6bd6b850-9788-4a70-b3d4-7f0937ec0b70}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="RaptorEngine\External\meshoptimizer">
+      <UniqueIdentifier>{a5a8d435-507a-4835-85a1-5002e69fe5d4}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\source\raptor\foundation\array.hpp">
+      <Filter>RaptorEngine\Foundation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\raptor\foundation\assert.hpp">
+      <Filter>RaptorEngine\Foundation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\raptor\foundation\bit.hpp">
+      <Filter>RaptorEngine\Foundation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\raptor\foundation\blob.hpp">
+      <Filter>RaptorEngine\Foundation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\raptor\foundation\blob_serialization.hpp">
+      <Filter>RaptorEngine\Foundation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\raptor\foundation\color.hpp">
+      <Filter>RaptorEngine\Foundation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\raptor\foundation\data_structures.hpp">
+      <Filter>RaptorEngine\Foundation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\raptor\foundation\file.hpp">
+      <Filter>RaptorEngine\Foundation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\raptor\foundation\hash_map.hpp">
+      <Filter>RaptorEngine\Foundation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\raptor\foundation\log.hpp">
+      <Filter>RaptorEngine\Foundation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\raptor\foundation\memory.hpp">
+      <Filter>RaptorEngine\Foundation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\raptor\foundation\memory_utils.hpp">
+      <Filter>RaptorEngine\Foundation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\raptor\foundation\numerics.hpp">
+      <Filter>RaptorEngine\Foundation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\raptor\foundation\platform.hpp">
+      <Filter>RaptorEngine\Foundation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\raptor\foundation\primitive_types.hpp">
+      <Filter>RaptorEngine\Foundation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\raptor\foundation\process.hpp">
+      <Filter>RaptorEngine\Foundation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\raptor\foundation\relative_data_structures.hpp">
+      <Filter>RaptorEngine\Foundation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\raptor\foundation\resource_manager.hpp">
+      <Filter>RaptorEngine\Foundation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\raptor\foundation\serialization.hpp">
+      <Filter>RaptorEngine\Foundation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\raptor\foundation\service.hpp">
+      <Filter>RaptorEngine\Foundation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\raptor\foundation\service_manager.hpp">
+      <Filter>RaptorEngine\Foundation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\raptor\foundation\string.hpp">
+      <Filter>RaptorEngine\Foundation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\raptor\foundation\time.hpp">
+      <Filter>RaptorEngine\Foundation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\external\imgui\imconfig.h">
+      <Filter>ImGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\external\imgui\imgui.h">
+      <Filter>ImGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\external\imgui\imgui_impl_sdl.h">
+      <Filter>ImGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\external\imgui\imgui_internal.h">
+      <Filter>ImGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\external\imgui\imgui_memory_editor.h">
+      <Filter>ImGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\external\imgui\imstb_rectpack.h">
+      <Filter>ImGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\external\imgui\imstb_textedit.h">
+      <Filter>ImGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\external\imgui\imstb_truetype.h">
+      <Filter>ImGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\external\imgui\stb_image.h">
+      <Filter>ImGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\external\imgui\TextEditor.h">
+      <Filter>ImGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\raptor\application\application.hpp">
+      <Filter>RaptorEngine\Application</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\raptor\application\game_application.hpp">
+      <Filter>RaptorEngine\Application</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\raptor\application\input.hpp">
+      <Filter>RaptorEngine\Application</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\raptor\application\keys.hpp">
+      <Filter>RaptorEngine\Application</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\raptor\application\window.hpp">
+      <Filter>RaptorEngine\Application</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\raptor\foundation\gltf.hpp">
+      <Filter>RaptorEngine\Foundation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\chapter8\graphics\command_buffer.hpp">
+      <Filter>RaptorEngine\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\chapter8\graphics\gpu_device.hpp">
+      <Filter>RaptorEngine\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\chapter8\graphics\gpu_enum.hpp">
+      <Filter>RaptorEngine\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\chapter8\graphics\gpu_profiler.hpp">
+      <Filter>RaptorEngine\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\chapter8\graphics\gpu_resources.hpp">
+      <Filter>RaptorEngine\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\chapter8\graphics\renderer.hpp">
+      <Filter>RaptorEngine\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\chapter8\graphics\spirv_parser.hpp">
+      <Filter>RaptorEngine\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\raptor\foundation\camera.hpp">
+      <Filter>RaptorEngine\Foundation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\raptor\application\game_camera.hpp">
+      <Filter>RaptorEngine\Application</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\chapter8\graphics\raptor_imgui.hpp">
+      <Filter>RaptorEngine\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\chapter8\graphics\frame_graph.hpp">
+      <Filter>RaptorEngine\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\chapter8\graphics\gltf_scene.hpp">
+      <Filter>RaptorEngine\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\chapter8\graphics\obj_scene.hpp">
+      <Filter>RaptorEngine\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\chapter8\graphics\render_scene.hpp">
+      <Filter>RaptorEngine\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\chapter8\graphics\scene_graph.hpp">
+      <Filter>RaptorEngine\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\chapter8\graphics\asynchronous_loader.hpp">
+      <Filter>RaptorEngine\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\chapter8\shaders\mesh.h">
+      <Filter>Shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\chapter8\shaders\platform.h">
+      <Filter>Shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\chapter8\graphics\render_resources_loader.hpp">
+      <Filter>RaptorEngine\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\external\meshoptimizer\meshoptimizer.h">
+      <Filter>RaptorEngine\External\meshoptimizer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\raptor\foundation\windows_declarations.h">
+      <Filter>RaptorEngine\Foundation</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\source\raptor\foundation\assert.cpp">
+      <Filter>RaptorEngine\Foundation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\raptor\foundation\bit.cpp">
+      <Filter>RaptorEngine\Foundation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\raptor\foundation\blob_serialization.cpp">
+      <Filter>RaptorEngine\Foundation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\raptor\foundation\color.cpp">
+      <Filter>RaptorEngine\Foundation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\raptor\foundation\data_structures.cpp">
+      <Filter>RaptorEngine\Foundation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\raptor\foundation\file.cpp">
+      <Filter>RaptorEngine\Foundation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\raptor\foundation\log.cpp">
+      <Filter>RaptorEngine\Foundation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\raptor\foundation\memory.cpp">
+      <Filter>RaptorEngine\Foundation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\raptor\foundation\numerics.cpp">
+      <Filter>RaptorEngine\Foundation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\raptor\foundation\process.cpp">
+      <Filter>RaptorEngine\Foundation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\raptor\foundation\resource_manager.cpp">
+      <Filter>RaptorEngine\Foundation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\raptor\foundation\serialization.cpp">
+      <Filter>RaptorEngine\Foundation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\raptor\foundation\service.cpp">
+      <Filter>RaptorEngine\Foundation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\raptor\foundation\service_manager.cpp">
+      <Filter>RaptorEngine\Foundation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\raptor\foundation\string.cpp">
+      <Filter>RaptorEngine\Foundation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\raptor\foundation\time.cpp">
+      <Filter>RaptorEngine\Foundation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\external\StackWalker.cpp">
+      <Filter>RaptorEngine\External</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\external\tlsf.c">
+      <Filter>RaptorEngine\External</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\external\imgui\imgui.cpp">
+      <Filter>ImGUI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\external\imgui\imgui_demo.cpp">
+      <Filter>ImGUI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\external\imgui\imgui_draw.cpp">
+      <Filter>ImGUI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\external\imgui\imgui_impl_sdl.cpp">
+      <Filter>ImGUI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\external\imgui\imgui_tables.cpp">
+      <Filter>ImGUI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\external\imgui\imgui_widgets.cpp">
+      <Filter>ImGUI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\external\imgui\TextEditor.cpp">
+      <Filter>ImGUI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\raptor\application\application.cpp">
+      <Filter>RaptorEngine\Application</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\raptor\application\game_application.cpp">
+      <Filter>RaptorEngine\Application</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\raptor\application\input.cpp">
+      <Filter>RaptorEngine\Application</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\raptor\application\keys.cpp">
+      <Filter>RaptorEngine\Application</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\raptor\application\window.cpp">
+      <Filter>RaptorEngine\Application</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\raptor\foundation\gltf.cpp">
+      <Filter>RaptorEngine\Foundation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\chapter8\graphics\command_buffer.cpp">
+      <Filter>RaptorEngine\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\chapter8\graphics\gpu_device.cpp">
+      <Filter>RaptorEngine\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\chapter8\graphics\gpu_profiler.cpp">
+      <Filter>RaptorEngine\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\chapter8\graphics\gpu_resources.cpp">
+      <Filter>RaptorEngine\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\chapter8\graphics\renderer.cpp">
+      <Filter>RaptorEngine\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\chapter8\graphics\spirv_parser.cpp">
+      <Filter>RaptorEngine\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\chapter8\main.cpp" />
+    <ClCompile Include="..\source\raptor\foundation\camera.cpp">
+      <Filter>RaptorEngine\Foundation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\raptor\application\game_camera.cpp">
+      <Filter>RaptorEngine\Application</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\external\enkiTS\TaskScheduler.cpp">
+      <Filter>RaptorEngine\External</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\chapter8\graphics\raptor_imgui.cpp">
+      <Filter>RaptorEngine\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\chapter8\graphics\frame_graph.cpp">
+      <Filter>RaptorEngine\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\chapter8\graphics\gltf_scene.cpp">
+      <Filter>RaptorEngine\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\chapter8\graphics\obj_scene.cpp">
+      <Filter>RaptorEngine\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\chapter8\graphics\render_scene.cpp">
+      <Filter>RaptorEngine\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\chapter8\graphics\scene_graph.cpp">
+      <Filter>RaptorEngine\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\chapter8\graphics\asynchronous_loader.cpp">
+      <Filter>RaptorEngine\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\chapter8\graphics\render_resources_loader.cpp">
+      <Filter>RaptorEngine\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\external\meshoptimizer\allocator.cpp">
+      <Filter>RaptorEngine\External\meshoptimizer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\external\meshoptimizer\clusterizer.cpp">
+      <Filter>RaptorEngine\External\meshoptimizer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\external\meshoptimizer\indexcodec.cpp">
+      <Filter>RaptorEngine\External\meshoptimizer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\external\meshoptimizer\indexgenerator.cpp">
+      <Filter>RaptorEngine\External\meshoptimizer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\external\meshoptimizer\overdrawanalyzer.cpp">
+      <Filter>RaptorEngine\External\meshoptimizer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\external\meshoptimizer\overdrawoptimizer.cpp">
+      <Filter>RaptorEngine\External\meshoptimizer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\external\meshoptimizer\simplifier.cpp">
+      <Filter>RaptorEngine\External\meshoptimizer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\external\meshoptimizer\spatialorder.cpp">
+      <Filter>RaptorEngine\External\meshoptimizer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\external\meshoptimizer\stripifier.cpp">
+      <Filter>RaptorEngine\External\meshoptimizer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\external\meshoptimizer\vcacheanalyzer.cpp">
+      <Filter>RaptorEngine\External\meshoptimizer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\external\meshoptimizer\vcacheoptimizer.cpp">
+      <Filter>RaptorEngine\External\meshoptimizer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\external\meshoptimizer\vertexcodec.cpp">
+      <Filter>RaptorEngine\External\meshoptimizer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\external\meshoptimizer\vertexfilter.cpp">
+      <Filter>RaptorEngine\External\meshoptimizer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\external\meshoptimizer\vfetchanalyzer.cpp">
+      <Filter>RaptorEngine\External\meshoptimizer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\external\meshoptimizer\vfetchoptimizer.cpp">
+      <Filter>RaptorEngine\External\meshoptimizer</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\source\chapter8\shaders\main.json">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\source\chapter8\shaders\depth.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\source\chapter8\shaders\dof.glsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\source\chapter8\shaders\dof.json">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\source\chapter8\shaders\fullscreen.glsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\source\chapter8\shaders\fullscreen.json">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\source\chapter8\shaders\gbuffer.glsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\source\chapter8\shaders\main.glsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\source\chapter8\shaders\pbr.glsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\source\chapter8\shaders\pbr_lighting.json">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\source\chapter8\shaders\phong.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\source\chapter8\shaders\phong.vert">
+      <Filter>Shaders</Filter>
+    </None>
+  </ItemGroup>
+</Project>

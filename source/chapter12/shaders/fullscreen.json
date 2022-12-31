@@ -1,0 +1,59 @@
+{
+	"name" : "fullscreen",
+	"pipelines" : [
+		{
+			"name" : "main_triangle",
+			"render_pass" : "swapchain",
+			"shaders" : [
+				{
+					"stage" : "vertex",
+					"shader" : "fullscreen.glsl",
+					"includes" : ["platform.h"]
+				},
+				{
+					"stage" : "fragment",
+					"shader" : "fullscreen.glsl",
+					"includes" : ["platform.h"]
+				}
+			]
+		},
+		{
+			"name" : "temporal_aa",
+			"render_pass" : "temporal_anti_aliasing_pass",
+			"shaders" : [
+				{
+					"stage" : "compute",
+					"shader" : "fullscreen.glsl",
+					"includes" : ["platform.h", "scene.h"]
+				}
+			]
+		},
+		{
+			"name" : "composite_camera_motion",
+			"render_pass" : "motion_vector_pass",
+			"shaders" : [
+				{
+					"stage" : "compute",
+					"shader" : "fullscreen.glsl",
+					"includes" : ["platform.h", "scene.h"]
+				}
+			]
+		},
+		{
+			"name" : "main_post",
+			"render_pass" : "swapchain",
+			"shaders" : [
+				{
+					"stage" : "vertex",
+					"shader" : "fullscreen.glsl",
+					"includes" : ["platform.h", "scene.h"]
+				},
+				{
+					"stage" : "fragment",
+					"shader" : "fullscreen.glsl",
+					"includes" : ["platform.h", "scene.h"]
+				}
+			]
+		}
+	]
+}

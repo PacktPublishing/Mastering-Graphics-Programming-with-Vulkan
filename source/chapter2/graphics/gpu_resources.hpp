@@ -844,6 +844,19 @@ static cstring to_compiler_extension( VkShaderStageFlagBits value ) {
 }
 
 //
+static cstring to_stage_defines( VkShaderStageFlagBits value ) {
+    switch ( value ) {
+        case VK_SHADER_STAGE_VERTEX_BIT:
+            return "VERTEX";
+        case VK_SHADER_STAGE_FRAGMENT_BIT:
+            return "FRAGMENT";
+        case VK_SHADER_STAGE_COMPUTE_BIT:
+            return "COMPUTE";
+        default:
+            return "";
+    }
+}
+//
 //
 static VkImageType to_vk_image_type( TextureType::Enum type ) {
     static VkImageType s_vk_target[ TextureType::Count ] = { VK_IMAGE_TYPE_1D, VK_IMAGE_TYPE_2D, VK_IMAGE_TYPE_3D, VK_IMAGE_TYPE_1D, VK_IMAGE_TYPE_2D, VK_IMAGE_TYPE_3D };

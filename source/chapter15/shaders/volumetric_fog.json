@@ -1,0 +1,71 @@
+{
+	"name" : "volumetric_fog",
+	"pipelines" : [
+		{
+			"name" : "inject_data",
+			"render_pass" : "volumetric_fog_pass",
+			"shaders" : [
+				{
+					"stage" : "compute",
+					"shader" : "volumetric_fog.glsl",
+					"includes" : ["platform.h", "scene.h"]
+				}
+			]
+		},
+		{
+			"name" : "light_scattering",
+			"render_pass" : "volumetric_fog_pass",
+			"shaders" : [
+				{
+					"stage" : "compute",
+					"shader" : "volumetric_fog.glsl",
+					"includes" : ["platform.h", "scene.h", "lighting.h"]
+				}
+			]
+		},
+		{
+			"name" : "light_integration",
+			"render_pass" : "volumetric_fog_pass",
+			"shaders" : [
+				{
+					"stage" : "compute",
+					"shader" : "volumetric_fog.glsl",
+					"includes" : ["platform.h", "scene.h"]
+				}
+			]
+		},
+		{
+			"name" : "spatial_filtering",
+			"render_pass" : "volumetric_fog_pass",
+			"shaders" : [
+				{
+					"stage" : "compute",
+					"shader" : "volumetric_fog.glsl",
+					"includes" : ["platform.h", "scene.h"]
+				}
+			]
+		},
+		{
+			"name" : "temporal_filtering",
+			"render_pass" : "volumetric_fog_pass",
+			"shaders" : [
+				{
+					"stage" : "compute",
+					"shader" : "volumetric_fog.glsl",
+					"includes" : ["platform.h", "scene.h"]
+				}
+			]
+		},
+		{
+			"name" : "volumetric_noise_baking",
+			"render_pass" : "volumetric_fog_pass",
+			"shaders" : [
+				{
+					"stage" : "compute",
+					"shader" : "volumetric_fog.glsl",
+					"includes" : ["platform.h", "scene.h"]
+				}
+			]
+		}
+	]
+}

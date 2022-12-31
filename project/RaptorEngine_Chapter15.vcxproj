@@ -1,0 +1,280 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>16.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{5605286f-1f0e-4829-a04b-8c7ba2141587}</ProjectGuid>
+    <RootNamespace>RaptorEngine</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>RaptorEngine_Chapter15</ProjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LinkIncremental>true</LinkIncremental>
+    <OutDir>$(SolutionDir)../binaries/</OutDir>
+    <TargetName>$(ProjectName)_$(Configuration)</TargetName>
+    <IntDir>$(Platform)\$(ProjectName)_$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LinkIncremental>false</LinkIncremental>
+    <OutDir>$(SolutionDir)../binaries/</OutDir>
+    <IntDir>$(Platform)\$(ProjectName)_$(Configuration)\</IntDir>
+    <TargetName>$(ProjectName)_$(Configuration)</TargetName>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_DEBUG;_CONSOLE;RAPTOR_SPV_FOLDER="../source/chapter15/shaders/";RAPTOR_SHADER_FOLDER="../source/chapter15/shaders/";RAPTOR_WORKING_FOLDER="../source/chapter15/";RAPTOR_DATA_FOLDER="../binaries/data/";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>../source/raptor;../source;../source/chapter15;$(VULKAN_SDK)/include;../binaries/SDL2-2.0.18/include;../binaries/assimp/include</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>../binaries/SDL2-2.0.18/lib/x64;$(VULKAN_SDK)/lib;../binaries/assimp/windows/lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>assimp-vc142-mt.lib;vulkan-1.lib;sdl2.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent>
+      <Command>
+      </Command>
+    </PostBuildEvent>
+    <PostBuildEvent>
+      <Message>
+      </Message>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;RAPTOR_SPV_FOLDER="../source/chapter15/shaders/";RAPTOR_SHADER_FOLDER="../source/chapter15/shaders/";RAPTOR_WORKING_FOLDER="../source/chapter15/";RAPTOR_DATA_FOLDER="../binaries/data/";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>../source/raptor;../source;../source/chapter15;$(VULKAN_SDK)/include;../binaries/SDL2-2.0.18/include;../binaries/assimp/include</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>../binaries/SDL2-2.0.18/lib/x64;$(VULKAN_SDK)/lib;../binaries/assimp/windows/lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>assimp-vc142-mt.lib;vulkan-1.lib;sdl2.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="..\source\chapter15\graphics\asynchronous_loader.hpp" />
+    <ClInclude Include="..\source\chapter15\graphics\command_buffer.hpp" />
+    <ClInclude Include="..\source\chapter15\graphics\frame_graph.hpp" />
+    <ClInclude Include="..\source\chapter15\graphics\gltf_scene.hpp" />
+    <ClInclude Include="..\source\chapter15\graphics\gpu_device.hpp" />
+    <ClInclude Include="..\source\chapter15\graphics\gpu_enum.hpp" />
+    <ClInclude Include="..\source\chapter15\graphics\gpu_profiler.hpp" />
+    <ClInclude Include="..\source\chapter15\graphics\gpu_resources.hpp" />
+    <ClInclude Include="..\source\chapter15\graphics\obj_scene.hpp" />
+    <ClInclude Include="..\source\chapter15\graphics\raptor_imgui.hpp" />
+    <ClInclude Include="..\source\chapter15\graphics\renderer.hpp" />
+    <ClInclude Include="..\source\chapter15\graphics\render_resources_loader.hpp" />
+    <ClInclude Include="..\source\chapter15\graphics\render_scene.hpp" />
+    <ClInclude Include="..\source\chapter15\graphics\scene_graph.hpp" />
+    <ClInclude Include="..\source\chapter15\graphics\spirv_parser.hpp" />
+    <ClInclude Include="..\source\chapter15\shaders\mesh.h" />
+    <ClInclude Include="..\source\chapter15\shaders\platform.h" />
+    <ClInclude Include="..\source\external\imgui\imconfig.h" />
+    <ClInclude Include="..\source\external\imgui\imgui.h" />
+    <ClInclude Include="..\source\external\imgui\imgui_impl_sdl.h" />
+    <ClInclude Include="..\source\external\imgui\imgui_internal.h" />
+    <ClInclude Include="..\source\external\imgui\imgui_memory_editor.h" />
+    <ClInclude Include="..\source\external\imgui\imstb_rectpack.h" />
+    <ClInclude Include="..\source\external\imgui\imstb_textedit.h" />
+    <ClInclude Include="..\source\external\imgui\imstb_truetype.h" />
+    <ClInclude Include="..\source\external\imgui\stb_image.h" />
+    <ClInclude Include="..\source\external\imgui\TextEditor.h" />
+    <ClInclude Include="..\source\external\meshoptimizer\meshoptimizer.h" />
+    <ClInclude Include="..\source\raptor\application\application.hpp" />
+    <ClInclude Include="..\source\raptor\application\game_application.hpp" />
+    <ClInclude Include="..\source\raptor\application\game_camera.hpp" />
+    <ClInclude Include="..\source\raptor\application\input.hpp" />
+    <ClInclude Include="..\source\raptor\application\keys.hpp" />
+    <ClInclude Include="..\source\raptor\application\window.hpp" />
+    <ClInclude Include="..\source\raptor\foundation\array.hpp" />
+    <ClInclude Include="..\source\raptor\foundation\assert.hpp" />
+    <ClInclude Include="..\source\raptor\foundation\bit.hpp" />
+    <ClInclude Include="..\source\raptor\foundation\blob.hpp" />
+    <ClInclude Include="..\source\raptor\foundation\blob_serialization.hpp" />
+    <ClInclude Include="..\source\raptor\foundation\camera.hpp" />
+    <ClInclude Include="..\source\raptor\foundation\color.hpp" />
+    <ClInclude Include="..\source\raptor\foundation\data_structures.hpp" />
+    <ClInclude Include="..\source\raptor\foundation\file.hpp" />
+    <ClInclude Include="..\source\raptor\foundation\gltf.hpp" />
+    <ClInclude Include="..\source\raptor\foundation\hash_map.hpp" />
+    <ClInclude Include="..\source\raptor\foundation\log.hpp" />
+    <ClInclude Include="..\source\raptor\foundation\memory.hpp" />
+    <ClInclude Include="..\source\raptor\foundation\memory_utils.hpp" />
+    <ClInclude Include="..\source\raptor\foundation\numerics.hpp" />
+    <ClInclude Include="..\source\raptor\foundation\platform.hpp" />
+    <ClInclude Include="..\source\raptor\foundation\primitive_types.hpp" />
+    <ClInclude Include="..\source\raptor\foundation\process.hpp" />
+    <ClInclude Include="..\source\raptor\foundation\relative_data_structures.hpp" />
+    <ClInclude Include="..\source\raptor\foundation\resource_manager.hpp" />
+    <ClInclude Include="..\source\raptor\foundation\serialization.hpp" />
+    <ClInclude Include="..\source\raptor\foundation\service.hpp" />
+    <ClInclude Include="..\source\raptor\foundation\service_manager.hpp" />
+    <ClInclude Include="..\source\raptor\foundation\string.hpp" />
+    <ClInclude Include="..\source\raptor\foundation\time.hpp" />
+    <ClInclude Include="..\source\raptor\foundation\windows_declarations.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\source\chapter15\graphics\asynchronous_loader.cpp" />
+    <ClCompile Include="..\source\chapter15\graphics\command_buffer.cpp" />
+    <ClCompile Include="..\source\chapter15\graphics\frame_graph.cpp" />
+    <ClCompile Include="..\source\chapter15\graphics\gltf_scene.cpp" />
+    <ClCompile Include="..\source\chapter15\graphics\gpu_device.cpp" />
+    <ClCompile Include="..\source\chapter15\graphics\gpu_profiler.cpp" />
+    <ClCompile Include="..\source\chapter15\graphics\gpu_resources.cpp" />
+    <ClCompile Include="..\source\chapter15\graphics\obj_scene.cpp" />
+    <ClCompile Include="..\source\chapter15\graphics\raptor_imgui.cpp" />
+    <ClCompile Include="..\source\chapter15\graphics\renderer.cpp" />
+    <ClCompile Include="..\source\chapter15\graphics\render_resources_loader.cpp" />
+    <ClCompile Include="..\source\chapter15\graphics\render_scene.cpp" />
+    <ClCompile Include="..\source\chapter15\graphics\scene_graph.cpp" />
+    <ClCompile Include="..\source\chapter15\graphics\spirv_parser.cpp" />
+    <ClCompile Include="..\source\chapter15\main.cpp" />
+    <ClCompile Include="..\source\external\enkiTS\TaskScheduler.cpp" />
+    <ClCompile Include="..\source\external\imgui\imgui.cpp" />
+    <ClCompile Include="..\source\external\imgui\imgui_demo.cpp" />
+    <ClCompile Include="..\source\external\imgui\imgui_draw.cpp" />
+    <ClCompile Include="..\source\external\imgui\imgui_impl_sdl.cpp" />
+    <ClCompile Include="..\source\external\imgui\imgui_tables.cpp" />
+    <ClCompile Include="..\source\external\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="..\source\external\imgui\TextEditor.cpp" />
+    <ClCompile Include="..\source\external\meshoptimizer\allocator.cpp" />
+    <ClCompile Include="..\source\external\meshoptimizer\clusterizer.cpp" />
+    <ClCompile Include="..\source\external\meshoptimizer\indexcodec.cpp" />
+    <ClCompile Include="..\source\external\meshoptimizer\indexgenerator.cpp" />
+    <ClCompile Include="..\source\external\meshoptimizer\overdrawanalyzer.cpp" />
+    <ClCompile Include="..\source\external\meshoptimizer\overdrawoptimizer.cpp" />
+    <ClCompile Include="..\source\external\meshoptimizer\simplifier.cpp" />
+    <ClCompile Include="..\source\external\meshoptimizer\spatialorder.cpp" />
+    <ClCompile Include="..\source\external\meshoptimizer\stripifier.cpp" />
+    <ClCompile Include="..\source\external\meshoptimizer\vcacheanalyzer.cpp" />
+    <ClCompile Include="..\source\external\meshoptimizer\vcacheoptimizer.cpp" />
+    <ClCompile Include="..\source\external\meshoptimizer\vertexcodec.cpp" />
+    <ClCompile Include="..\source\external\meshoptimizer\vertexfilter.cpp" />
+    <ClCompile Include="..\source\external\meshoptimizer\vfetchanalyzer.cpp" />
+    <ClCompile Include="..\source\external\meshoptimizer\vfetchoptimizer.cpp" />
+    <ClCompile Include="..\source\external\StackWalker.cpp" />
+    <ClCompile Include="..\source\external\tlsf.c" />
+    <ClCompile Include="..\source\raptor\application\application.cpp" />
+    <ClCompile Include="..\source\raptor\application\game_application.cpp" />
+    <ClCompile Include="..\source\raptor\application\game_camera.cpp" />
+    <ClCompile Include="..\source\raptor\application\input.cpp" />
+    <ClCompile Include="..\source\raptor\application\keys.cpp" />
+    <ClCompile Include="..\source\raptor\application\window.cpp" />
+    <ClCompile Include="..\source\raptor\foundation\assert.cpp" />
+    <ClCompile Include="..\source\raptor\foundation\bit.cpp" />
+    <ClCompile Include="..\source\raptor\foundation\blob_serialization.cpp" />
+    <ClCompile Include="..\source\raptor\foundation\camera.cpp" />
+    <ClCompile Include="..\source\raptor\foundation\color.cpp" />
+    <ClCompile Include="..\source\raptor\foundation\data_structures.cpp" />
+    <ClCompile Include="..\source\raptor\foundation\file.cpp" />
+    <ClCompile Include="..\source\raptor\foundation\gltf.cpp" />
+    <ClCompile Include="..\source\raptor\foundation\log.cpp" />
+    <ClCompile Include="..\source\raptor\foundation\memory.cpp" />
+    <ClCompile Include="..\source\raptor\foundation\numerics.cpp" />
+    <ClCompile Include="..\source\raptor\foundation\process.cpp" />
+    <ClCompile Include="..\source\raptor\foundation\resource_manager.cpp" />
+    <ClCompile Include="..\source\raptor\foundation\serialization.cpp" />
+    <ClCompile Include="..\source\raptor\foundation\service.cpp" />
+    <ClCompile Include="..\source\raptor\foundation\service_manager.cpp" />
+    <ClCompile Include="..\source\raptor\foundation\string.cpp" />
+    <ClCompile Include="..\source\raptor\foundation\time.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\source\chapter15\shaders\depth.vert" />
+    <None Include="..\source\chapter15\shaders\dof.glsl" />
+    <None Include="..\source\chapter15\shaders\dof.json" />
+    <None Include="..\source\chapter15\shaders\fullscreen.glsl" />
+    <None Include="..\source\chapter15\shaders\fullscreen.json" />
+    <None Include="..\source\chapter15\shaders\gbuffer.glsl" />
+    <None Include="..\source\chapter15\shaders\main.glsl" />
+    <None Include="..\source\chapter15\shaders\main.json" />
+    <None Include="..\source\chapter15\shaders\pbr.glsl" />
+    <None Include="..\source\chapter15\shaders\pbr_lighting.json" />
+    <None Include="..\source\chapter15\shaders\phong.frag" />
+    <None Include="..\source\chapter15\shaders\phong.vert" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

@@ -24,6 +24,9 @@ struct Camera {
     void                        update();
     void                        rotate( f32 delta_pitch, f32 delta_yaw );
 
+    void                        calculate_projection_matrix();
+    void                        calculate_view_projection();
+
     // Project/unproject
     vec3s                       unproject( const vec3s& screen_coordinates );
 

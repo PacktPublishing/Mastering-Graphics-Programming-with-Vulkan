@@ -1,0 +1,21 @@
+{
+    "name": "gltf_graph",
+    "passes":
+    [
+        {
+            "name": "ray_tracing_test",
+            "type": "ray_tracing",
+            "outputs":
+            [
+                {
+                    "type": "texture",
+                    "name": "final",
+                    "format": "VK_FORMAT_B8G8R8A8_UNORM",
+                    "resolution": [ 1280, 800 ],
+                    "load_operation": "clear",
+                    "clear_color":[0, 0, 0, 1]
+                }
+            ]
+        }
+    ]
+}

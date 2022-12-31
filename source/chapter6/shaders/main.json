@@ -1,19 +1,226 @@
 {
 	"name" : "main",
-	"pipelines" : [
+	"vertex_inputs" : [
 		{
 			"name" : "depth_pre",
-			"vertex_input" : [
+			"vertex_attributes" : [
 				{
 					"attribute_location" : 0,
 					"attribute_binding" : 0,
 					"attribute_offset" : 0,
-					"attribute_format" : "Float3",
+					"attribute_format" : "Float3"
+				}
+			],
+			"vertex_streams" : [
+				{
 					"stream_binding" : 0,
 					"stream_stride" : 12,
 					"stream_rate" : "Vertex"
 				}
+			]
+		},
+		{
+			"name" : "depth_pre_skinning",
+			"vertex_attributes" : [
+				{
+					"attribute_location" : 0,
+					"attribute_binding" : 0,
+					"attribute_offset" : 0,
+					"attribute_format" : "Float3"
+				},
+				{
+					"attribute_location" : 1,
+					"attribute_binding" : 1,
+					"attribute_offset" : 0,
+					"attribute_format" : "Float4"
+				},
+				{
+					"attribute_location" : 2,
+					"attribute_binding" : 2,
+					"attribute_offset" : 0,
+					"attribute_format" : "Float3"
+				},
+				{
+					"attribute_location" : 3,
+					"attribute_binding" : 3,
+					"attribute_offset" : 0,
+					"attribute_format" : "Float2"
+				},
+				{
+					"attribute_location" : 4,
+					"attribute_binding" : 4,
+					"attribute_offset" : 0,
+					"attribute_format" : "Short4"
+				},
+				{
+					"attribute_location" : 5,
+					"attribute_binding" : 5,
+					"attribute_offset" : 0,
+					"attribute_format" : "Float4"
+				}
 			],
+			"vertex_streams" : [
+				{
+					"stream_binding" : 0,
+					"stream_stride" : 12,
+					"stream_rate" : "Vertex"
+				},
+				{
+					"stream_binding" : 1,
+					"stream_stride" : 16,
+					"stream_rate" : "Vertex"
+				},
+				{
+					"stream_binding" : 2,
+					"stream_stride" : 12,
+					"stream_rate" : "Vertex"
+				},
+				{
+					"stream_binding" : 3,
+					"stream_stride" : 8,
+					"stream_rate" : "Vertex"
+				},
+				{
+					"stream_binding" : 4,
+					"stream_stride" : 8,
+					"stream_rate" : "Vertex"
+				},
+				{
+					"stream_binding" : 5,
+					"stream_stride" : 16,
+					"stream_rate" : "Vertex"
+				}
+			]
+		},
+		{
+			"name" : "gbuffer",
+			"vertex_attributes" : [
+				{
+					"attribute_location" : 0,
+					"attribute_binding" : 0,
+					"attribute_offset" : 0,
+					"attribute_format" : "Float3"
+				},
+				{
+					"attribute_location" : 1,
+					"attribute_binding" : 1,
+					"attribute_offset" : 0,
+					"attribute_format" : "Float4"
+				},
+				{
+					"attribute_location" : 2,
+					"attribute_binding" : 2,
+					"attribute_offset" : 0,
+					"attribute_format" : "Float3"
+				},
+				{
+					"attribute_location" : 3,
+					"attribute_binding" : 3,
+					"attribute_offset" : 0,
+					"attribute_format" : "Float2"
+				}
+			],
+			"vertex_streams" : [
+				{
+					"stream_binding" : 0,
+					"stream_stride" : 12,
+					"stream_rate" : "Vertex"
+				},
+				{
+					"stream_binding" : 1,
+					"stream_stride" : 16,
+					"stream_rate" : "Vertex"
+				},
+				{
+					"stream_binding" : 2,
+					"stream_stride" : 12,
+					"stream_rate" : "Vertex"
+				},
+				{
+					"stream_binding" : 3,
+					"stream_stride" : 8,
+					"stream_rate" : "Vertex"
+				}
+			]
+		},
+		{
+			"name" : "gbuffer_skinning",
+			"vertex_attributes" : [
+				{
+					"attribute_location" : 0,
+					"attribute_binding" : 0,
+					"attribute_offset" : 0,
+					"attribute_format" : "Float3"
+				},
+				{
+					"attribute_location" : 1,
+					"attribute_binding" : 1,
+					"attribute_offset" : 0,
+					"attribute_format" : "Float4"
+				},
+				{
+					"attribute_location" : 2,
+					"attribute_binding" : 2,
+					"attribute_offset" : 0,
+					"attribute_format" : "Float3"
+				},
+				{
+					"attribute_location" : 3,
+					"attribute_binding" : 3,
+					"attribute_offset" : 0,
+					"attribute_format" : "Float2"
+				},
+				{
+					"attribute_location" : 4,
+					"attribute_binding" : 4,
+					"attribute_offset" : 0,
+					"attribute_format" : "Short4"
+				},
+				{
+					"attribute_location" : 5,
+					"attribute_binding" : 5,
+					"attribute_offset" : 0,
+					"attribute_format" : "Float4"
+				}
+			],
+			"vertex_streams" : [
+				{
+					"stream_binding" : 0,
+					"stream_stride" : 12,
+					"stream_rate" : "Vertex"
+				},
+				{
+					"stream_binding" : 1,
+					"stream_stride" : 16,
+					"stream_rate" : "Vertex"
+				},
+				{
+					"stream_binding" : 2,
+					"stream_stride" : 12,
+					"stream_rate" : "Vertex"
+				},
+				{
+					"stream_binding" : 3,
+					"stream_stride" : 8,
+					"stream_rate" : "Vertex"
+				},
+				{
+					"stream_binding" : 4,
+					"stream_stride" : 8,
+					"stream_rate" : "Vertex"
+				},
+				{
+					"stream_binding" : 5,
+					"stream_stride" : 16,
+					"stream_rate" : "Vertex"
+				}
+			]
+		}
+	],
+	"pipelines" : [
+		{
+			"name" : "depth_pre",
+			"vertex_input" : "depth_pre",
 			"render_pass" : "depth_pre_pass",
 			"depth" : {
 				"write" : true,
@@ -29,62 +236,7 @@
 		},
 		{
 			"name" : "depth_pre_skinning",
-			"vertex_input" : [
-				{
-					"attribute_location" : 0,
-					"attribute_binding" : 0,
-					"attribute_offset" : 0,
-					"attribute_format" : "Float3",
-					"stream_binding" : 0,
-					"stream_stride" : 12,
-					"stream_rate" : "Vertex"
-				},
-				{
-					"attribute_location" : 1,
-					"attribute_binding" : 1,
-					"attribute_offset" : 0,
-					"attribute_format" : "Float4",
-					"stream_binding" : 1,
-					"stream_stride" : 16,
-					"stream_rate" : "Vertex"
-				},
-				{
-					"attribute_location" : 2,
-					"attribute_binding" : 2,
-					"attribute_offset" : 0,
-					"attribute_format" : "Float3",
-					"stream_binding" : 2,
-					"stream_stride" : 12,
-					"stream_rate" : "Vertex"
-				},
-				{
-					"attribute_location" : 3,
-					"attribute_binding" : 3,
-					"attribute_offset" : 0,
-					"attribute_format" : "Float2",
-					"stream_binding" : 3,
-					"stream_stride" : 8,
-					"stream_rate" : "Vertex"
-				},
-				{
-					"attribute_location" : 4,
-					"attribute_binding" : 4,
-					"attribute_offset" : 0,
-					"attribute_format" : "Short4",
-					"stream_binding" : 4,
-					"stream_stride" : 8,
-					"stream_rate" : "Vertex"
-				},
-				{
-					"attribute_location" : 5,
-					"attribute_binding" : 5,
-					"attribute_offset" : 0,
-					"attribute_format" : "Float4",
-					"stream_binding" : 5,
-					"stream_stride" : 16,
-					"stream_rate" : "Vertex"
-				}
-			],
+			"vertex_input" : "depth_pre_skinning",
 			"render_pass" : "depth_pre_pass",
 			"depth" : {
 				"write" : true,
@@ -106,44 +258,7 @@
 		},
 		{
 			"name" : "gbuffer_no_cull",
-			"vertex_input" : [
-				{
-					"attribute_location" : 0,
-					"attribute_binding" : 0,
-					"attribute_offset" : 0,
-					"attribute_format" : "Float3",
-					"stream_binding" : 0,
-					"stream_stride" : 12,
-					"stream_rate" : "Vertex"
-				},
-				{
-					"attribute_location" : 1,
-					"attribute_binding" : 1,
-					"attribute_offset" : 0,
-					"attribute_format" : "Float4",
-					"stream_binding" : 1,
-					"stream_stride" : 16,
-					"stream_rate" : "Vertex"
-				},
-				{
-					"attribute_location" : 2,
-					"attribute_binding" : 2,
-					"attribute_offset" : 0,
-					"attribute_format" : "Float3",
-					"stream_binding" : 2,
-					"stream_stride" : 12,
-					"stream_rate" : "Vertex"
-				},
-				{
-					"attribute_location" : 3,
-					"attribute_binding" : 3,
-					"attribute_offset" : 0,
-					"attribute_format" : "Float2",
-					"stream_binding" : 3,
-					"stream_stride" : 8,
-					"stream_rate" : "Vertex"
-				}
-			],
+			"vertex_input" : "gbuffer",
 			"render_pass" : "gbuffer_pass_early",
 			"depth" : {
 				"write" : true,
@@ -169,62 +284,7 @@
 		},
 		{
 			"name" : "gbuffer_skinning",
-			"vertex_input" : [
-				{
-					"attribute_location" : 0,
-					"attribute_binding" : 0,
-					"attribute_offset" : 0,
-					"attribute_format" : "Float3",
-					"stream_binding" : 0,
-					"stream_stride" : 12,
-					"stream_rate" : "Vertex"
-				},
-				{
-					"attribute_location" : 1,
-					"attribute_binding" : 1,
-					"attribute_offset" : 0,
-					"attribute_format" : "Float4",
-					"stream_binding" : 1,
-					"stream_stride" : 16,
-					"stream_rate" : "Vertex"
-				},
-				{
-					"attribute_location" : 2,
-					"attribute_binding" : 2,
-					"attribute_offset" : 0,
-					"attribute_format" : "Float3",
-					"stream_binding" : 2,
-					"stream_stride" : 12,
-					"stream_rate" : "Vertex"
-				},
-				{
-					"attribute_location" : 3,
-					"attribute_binding" : 3,
-					"attribute_offset" : 0,
-					"attribute_format" : "Float2",
-					"stream_binding" : 3,
-					"stream_stride" : 8,
-					"stream_rate" : "Vertex"
-				},
-				{
-					"attribute_location" : 4,
-					"attribute_binding" : 4,
-					"attribute_offset" : 0,
-					"attribute_format" : "Short4",
-					"stream_binding" : 4,
-					"stream_stride" : 8,
-					"stream_rate" : "Vertex"
-				},
-				{
-					"attribute_location" : 5,
-					"attribute_binding" : 5,
-					"attribute_offset" : 0,
-					"attribute_format" : "Float4",
-					"stream_binding" : 5,
-					"stream_stride" : 16,
-					"stream_rate" : "Vertex"
-				}
-			],
+			"vertex_input" : "gbuffer_skinning",
 			"render_pass" : "gbuffer_pass_early",
 			"depth" : {
 				"write" : true,
@@ -246,44 +306,7 @@
 		},
 		{
 			"name" : "transparent_no_cull",
-			"vertex_input" : [
-				{
-					"attribute_location" : 0,
-					"attribute_binding" : 0,
-					"attribute_offset" : 0,
-					"attribute_format" : "Float3",
-					"stream_binding" : 0,
-					"stream_stride" : 12,
-					"stream_rate" : "Vertex"
-				},
-				{
-					"attribute_location" : 1,
-					"attribute_binding" : 1,
-					"attribute_offset" : 0,
-					"attribute_format" : "Float4",
-					"stream_binding" : 1,
-					"stream_stride" : 16,
-					"stream_rate" : "Vertex"
-				},
-				{
-					"attribute_location" : 2,
-					"attribute_binding" : 2,
-					"attribute_offset" : 0,
-					"attribute_format" : "Float3",
-					"stream_binding" : 2,
-					"stream_stride" : 12,
-					"stream_rate" : "Vertex"
-				},
-				{
-					"attribute_location" : 3,
-					"attribute_binding" : 3,
-					"attribute_offset" : 0,
-					"attribute_format" : "Float2",
-					"stream_binding" : 3,
-					"stream_stride" : 8,
-					"stream_rate" : "Vertex"
-				}
-			],
+			"vertex_input" : "gbuffer",
 			"render_pass" : "swapchain",
 			"depth" : {
 				"write" : false,
@@ -317,62 +340,7 @@
 		},
 		{
 			"name" : "transparent_skinning_no_cull",
-			"vertex_input" : [
-				{
-					"attribute_location" : 0,
-					"attribute_binding" : 0,
-					"attribute_offset" : 0,
-					"attribute_format" : "Float3",
-					"stream_binding" : 0,
-					"stream_stride" : 12,
-					"stream_rate" : "Vertex"
-				},
-				{
-					"attribute_location" : 1,
-					"attribute_binding" : 1,
-					"attribute_offset" : 0,
-					"attribute_format" : "Float4",
-					"stream_binding" : 1,
-					"stream_stride" : 16,
-					"stream_rate" : "Vertex"
-				},
-				{
-					"attribute_location" : 2,
-					"attribute_binding" : 2,
-					"attribute_offset" : 0,
-					"attribute_format" : "Float3",
-					"stream_binding" : 2,
-					"stream_stride" : 12,
-					"stream_rate" : "Vertex"
-				},
-				{
-					"attribute_location" : 3,
-					"attribute_binding" : 3,
-					"attribute_offset" : 0,
-					"attribute_format" : "Float2",
-					"stream_binding" : 3,
-					"stream_stride" : 8,
-					"stream_rate" : "Vertex"
-				},
-				{
-					"attribute_location" : 4,
-					"attribute_binding" : 4,
-					"attribute_offset" : 0,
-					"attribute_format" : "Short4",
-					"stream_binding" : 4,
-					"stream_stride" : 8,
-					"stream_rate" : "Vertex"
-				},
-				{
-					"attribute_location" : 5,
-					"attribute_binding" : 5,
-					"attribute_offset" : 0,
-					"attribute_format" : "Float4",
-					"stream_binding" : 5,
-					"stream_stride" : 16,
-					"stream_rate" : "Vertex"
-				}
-			],
+			"vertex_input" : "gbuffer_skinning",
 			"render_pass" : "swapchain",
 			"depth" : {
 				"write" : false,

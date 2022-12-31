@@ -1,0 +1,102 @@
+{
+	"name" : "pbr_lighting",
+	"vertex_inputs" : [
+		{
+			"name" : "tri",
+			"vertex_attributes" : [
+				{
+					"attribute_location" : 0,
+					"attribute_binding" : 0,
+					"attribute_offset" : 0,
+					"attribute_format" : "Float3"
+				}
+			],
+			"vertex_streams" : [
+				{
+					"stream_binding" : 0,
+					"stream_stride" : 12,
+					"stream_rate" : "Vertex"
+				}
+			]
+		}
+	],
+	"pipelines" : [
+		{
+			"name" : "deferred_lighting_pixel",
+			"vertex_input" : "tri",
+			"render_pass" : "lighting_pass",
+			"flags": "shading_rate_image",
+			"depth" : {
+				"write" : false,
+				"test" : "never"
+			},
+			"shaders" : [
+				{
+					"stage" : "vertex",
+					"shader" : "pbr.glsl",
+					"includes" : ["platform.h"]
+				},
+				{
+					"stage" : "fragment",
+					"shader" : "pbr.glsl",
+					"includes" : ["platform.h", "scene.h", "lighting.h"]
+				}
+			]
+		},
+		{
+			"name" : "deferred_lighting_compute",
+			"render_pass" : "lighting_pass",
+			"shaders" : [
+				{
+					"stage" : "compute",
+					"shader" : "pbr.glsl",
+					"includes" : ["platform.h", "scene.h", "lighting.h"]
+				}
+			]
+		},
+		{
+			"name" : "edge_detection",
+			"render_pass" : "lighting_pass",
+			"shaders" : [
+				{
+					"stage" : "compute",
+					"shader" : "pbr.glsl",
+					"includes" : ["platform.h", "scene.h"]
+				}
+			]
+		},
+		{
+			"name" : "shadow_visibility_variance",
+			"render_pass" : "shadow_visibility_pass",
+			"shaders" : [
+				{
+					"stage" : "compute",
+					"shader" : "pbr.glsl",
+					"includes" : ["platform.h", "scene.h", "lighting.h"]
+				}
+			]
+		},
+		{
+			"name" : "shadow_visibility",
+			"render_pass" : "shadow_visibility_pass",
+			"shaders" : [
+				{
+					"stage" : "compute",
+					"shader" : "pbr.glsl",
+					"includes" : ["platform.h", "scene.h", "lighting.h"]
+				}
+			]
+		},
+		{
+			"name" : "shadow_visibility_filtering",
+			"render_pass" : "shadow_visibility_pass",
+			"shaders" : [
+				{
+					"stage" : "compute",
+					"shader" : "pbr.glsl",
+					"includes" : ["platform.h", "scene.h", "lighting.h"]
+				}
+			]
+		}
+	]
+}

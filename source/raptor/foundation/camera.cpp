@@ -105,21 +105,29 @@ void Camera::update() {
     if ( update_projection ) {
         update_projection = false;
 
-        if ( perspective ) {
-            projection = glms_perspective( glm_rad( field_of_view_y ), aspect_ratio, near_plane, far_plane );
-        } else {
-            projection = glms_ortho( zoom * -viewport_width / 2.f, zoom * viewport_width / 2.f, zoom * -viewport_height / 2.f, zoom * viewport_height / 2.f, near_plane, far_plane );
-        }
+        calculate_projection_matrix();
     }
 
     // Calculate final view projection matrix
-    view_projection = glms_mat4_mul( projection, view );
+    calculate_view_projection();
 }
 
 void Camera::rotate( f32 delta_pitch, f32 delta_yaw ) {
 
     pitch += delta_pitch;
     yaw += delta_yaw;
+}
+
+void Camera::calculate_projection_matrix() {
+    if ( perspective ) {
+        projection = glms_perspective( glm_rad( field_of_view_y ), aspect_ratio, near_plane, far_plane );
+    } else {
+        projection = glms_ortho( zoom * -viewport_width / 2.f, zoom * viewport_width / 2.f, zoom * -viewport_height / 2.f, zoom * viewport_height / 2.f, near_plane, far_plane );
+    }
+}
+
+void Camera::calculate_view_projection() {
+    view_projection = glms_mat4_mul( projection, view );
 }
 
 vec3s Camera::unproject( const vec3s& screen_coordinates ) {

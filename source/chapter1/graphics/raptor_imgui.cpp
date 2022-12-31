@@ -162,6 +162,7 @@ void ImGuiService::init( void* configuration ) {
     }
     else {
         descriptor_set_layout_creation.add_binding( { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, 1, "LocalConstants" } ).set_name( "RLL_ImGui" );
+        descriptor_set_layout_creation.add_binding( { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, 1, "LocalConstants" } ).set_name( "RLL_ImGui" );
     }
 
 
@@ -178,7 +179,7 @@ void ImGuiService::init( void* configuration ) {
 
     // Create descriptor set
     DescriptorSetCreation ds_creation{};
-    if ( gpu->bindless_supported ) {
+    if ( !gpu->bindless_supported ) {
         ds_creation.set_layout( pipeline_creation.descriptor_set_layout[0] ).buffer( g_ui_cb, 0 ).texture( g_font_texture, 1 ).set_name( "RL_ImGui" );
     } else {
         ds_creation.set_layout( pipeline_creation.descriptor_set_layout[0] ).buffer( g_ui_cb, 0 ).set_name( "RL_ImGui" );

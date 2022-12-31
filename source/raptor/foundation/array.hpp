@@ -8,11 +8,11 @@ namespace raptor {
     // Data structures ////////////////////////////////////////////////////
 
     // ArrayAligned ///////////////////////////////////////////////////////
-    template <typename T, u32 alignment>
-    struct ArrayAligned {
+    template <typename T>
+    struct Array {
 
-        ArrayAligned();
-        ~ArrayAligned();
+        Array();
+        ~Array();
 
         void                        init( Allocator* allocator, u32 initial_capacity, u32 initial_size = 0 );
         void                        shutdown();
@@ -46,12 +46,6 @@ namespace raptor {
         u32                         capacity;   // Allocated capacity
         Allocator*                  allocator;
 
-    }; // struct ArrayAligned
-
-    // Array //////////////////////////////////////////////////////////////
-    template <typename T>
-    struct Array : public ArrayAligned<T, 1> {
-        // Empty, just name aliasing
     }; // struct Array
 
     // ArrayView //////////////////////////////////////////////////////////
@@ -74,18 +68,18 @@ namespace raptor {
     // Implementation /////////////////////////////////////////////////////
 
     // ArrayAligned ///////////////////////////////////////////////////////
-    template<typename T, u32 alignment>
-    inline ArrayAligned<T, alignment>::ArrayAligned() {
+    template<typename T>
+    inline Array<T>::Array() {
         //RASSERT( true );
     }
 
-    template<typename T, u32 alignment>
-    inline ArrayAligned<T, alignment>::~ArrayAligned() {
+    template<typename T>
+    inline Array<T>::~Array() {
         //RASSERT( data == nullptr );
     }
 
-    template<typename T, u32 alignment>
-    inline void ArrayAligned<T, alignment>::init( Allocator* allocator_, u32 initial_capacity, u32 initial_size ) {
+    template<typename T>
+    inline void Array<T>::init( Allocator* allocator_, u32 initial_capacity, u32 initial_size ) {
         data = nullptr;
         size = initial_size;
         capacity = 0;
@@ -96,8 +90,8 @@ namespace raptor {
         }
     }
 
-    template<typename T, u32 alignment>
-    inline void ArrayAligned<T, alignment>::shutdown() {
+    template<typename T>
+    inline void Array<T>::shutdown() {
         if ( capacity > 0 ) {
             allocator->deallocate( data );
         }
@@ -105,8 +99,8 @@ namespace raptor {
         size = capacity = 0;
     }
 
-    template<typename T, u32 alignment>
-    inline void ArrayAligned<T, alignment>::push( const T& element ) {
+    template<typename T>
+    inline void Array<T>::push( const T& element ) {
         if ( size >= capacity ) {
             grow( capacity + 1 );
         }
@@ -114,8 +108,8 @@ namespace raptor {
         data[ size++ ] = element;
     }
 
-    template<typename T, u32 alignment>
-    inline T& ArrayAligned<T, alignment>::push_use() {
+    template<typename T>
+    inline T& Array<T>::push_use() {
         if ( size >= capacity ) {
             grow( capacity + 1 );
         }
@@ -124,59 +118,59 @@ namespace raptor {
         return back();
     }
 
-    template<typename T, u32 alignment>
-    inline void ArrayAligned<T, alignment>::pop() {
+    template<typename T>
+    inline void Array<T>::pop() {
         RASSERT( size > 0 );
         --size;
     }
 
-    template<typename T, u32 alignment>
-    inline void ArrayAligned<T, alignment>::delete_swap( u32 index ) {
+    template<typename T>
+    inline void Array<T>::delete_swap( u32 index ) {
         RASSERT( size > 0 && index < size );
         data[ index ] = data[ --size ];
     }
 
-    template<typename T, u32 alignment>
-    inline T& ArrayAligned<T, alignment>::operator []( u32 index ) {
+    template<typename T>
+    inline T& Array<T>::operator []( u32 index ) {
         RASSERT( index < size );
         return data[ index ];
     }
 
-    template<typename T, u32 alignment>
-    inline const T& ArrayAligned<T, alignment>::operator []( u32 index ) const {
+    template<typename T>
+    inline const T& Array<T>::operator []( u32 index ) const {
         RASSERT( index < size );
         return data[ index ];
     }
 
-    template<typename T, u32 alignment>
-    inline void ArrayAligned<T, alignment>::clear() {
+    template<typename T>
+    inline void Array<T>::clear() {
         size = 0;
     }
 
-    template<typename T, u32 alignment>
-    inline void ArrayAligned<T, alignment>::set_size( u32 new_size ) {
+    template<typename T>
+    inline void Array<T>::set_size( u32 new_size ) {
         if ( new_size > capacity ) {
             grow( new_size );
         }
         size = new_size;
     }
 
-    template<typename T, u32 alignment>
-    inline void ArrayAligned<T, alignment>::set_capacity( u32 new_capacity ) {
+    template<typename T>
+    inline void Array<T>::set_capacity( u32 new_capacity ) {
         if ( new_capacity > capacity ) {
             grow( new_capacity );
         }
     }
 
-    template<typename T, u32 alignment>
-    inline void ArrayAligned<T, alignment>::grow( u32 new_capacity ) {
+    template<typename T>
+    inline void Array<T>::grow( u32 new_capacity ) {
         if ( new_capacity < capacity * 2 ) {
             new_capacity = capacity * 2;
         } else if ( new_capacity < 4 ) {
             new_capacity = 4;
         }
 
-        T* new_data = ( T* )allocator->allocate( new_capacity * sizeof( T ), alignment );
+        T* new_data = ( T* )allocator->allocate( new_capacity * sizeof( T ), alignof( T ) );
         if ( capacity ) {
             memory_copy( new_data, data, capacity * sizeof( T ) );
 
@@ -187,37 +181,37 @@ namespace raptor {
         capacity = new_capacity;
     }
 
-    template<typename T, u32 alignment>
-    inline T& ArrayAligned<T, alignment>::back() {
+    template<typename T>
+    inline T& Array<T>::back() {
         RASSERT( size );
         return data[ size - 1 ];
     }
 
-    template<typename T, u32 alignment>
-    inline const T& ArrayAligned<T, alignment>::back() const {
+    template<typename T>
+    inline const T& Array<T>::back() const {
         RASSERT( size );
         return data[ size - 1 ];
     }
 
-    template<typename T, u32 alignment>
-    inline T& ArrayAligned<T, alignment>::front() {
+    template<typename T>
+    inline T& Array<T>::front() {
         RASSERT( size );
         return data[ 0 ];
     }
 
-    template<typename T, u32 alignment>
-    inline const T& ArrayAligned<T, alignment>::front() const {
+    template<typename T>
+    inline const T& Array<T>::front() const {
         RASSERT( size );
         return data[ 0 ];
     }
 
-    template<typename T, u32 alignment>
-    inline u32 ArrayAligned<T, alignment>::size_in_bytes() const {
+    template<typename T>
+    inline u32 Array<T>::size_in_bytes() const {
         return size * sizeof( T );
     }
 
-    template<typename T, u32 alignment>
-    inline u32 ArrayAligned<T, alignment>::capacity_in_bytes() const {
+    template<typename T>
+    inline u32 Array<T>::capacity_in_bytes() const {
         return capacity * sizeof( T );
     }
 

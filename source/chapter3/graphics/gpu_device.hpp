@@ -154,6 +154,8 @@ struct GpuDevice : public Service {
 
     void                            frame_counters_advance();
 
+    VkShaderModuleCreateInfo        compile_shader( cstring code, u32 code_size, VkShaderStageFlagBits stage, cstring name );
+
     // Swapchain //////////////////////////////////////////////////////////
     void                            create_swapchain();
     void                            destroy_swapchain();
@@ -241,6 +243,7 @@ struct GpuDevice : public Service {
     StringBuffer                    string_buffer;
 
     Allocator*                      allocator;
+    StackAllocator*                 temporary_allocator;
 
     u32                             dynamic_max_per_frame_size;
     BufferHandle                    dynamic_buffer;

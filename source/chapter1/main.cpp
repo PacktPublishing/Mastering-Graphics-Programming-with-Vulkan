@@ -90,6 +90,9 @@ int main( int argc, char** argv ) {
 
     Allocator* allocator = &MemoryService::instance()->system_allocator;
 
+    StackAllocator scratch_allocator;
+    scratch_allocator.init( rmega( 8 ) );
+
     // window
     WindowConfiguration wconf{ 1280, 800, "Raptor Test", allocator };
     raptor::Window window;
@@ -103,7 +106,7 @@ int main( int argc, char** argv ) {
 
     // graphics
     DeviceCreation dc;
-    dc.set_window( window.width, window.height, window.platform_handle ).set_allocator( allocator );
+    dc.set_window( window.width, window.height, window.platform_handle ).set_allocator( allocator ).set_linear_allocator( &scratch_allocator );
     GpuDevice gpu;
     gpu.init( dc );
 

@@ -1,0 +1,204 @@
+{
+	"name" : "debug",
+	"vertex_inputs" : [
+		{
+			"name" : "debug_mesh",
+			"vertex_attributes" : [
+				{
+					"attribute_location" : 0,
+					"attribute_binding" : 0,
+					"attribute_offset" : 0,
+					"attribute_format" : "Float3"
+				}
+			],
+			"vertex_streams" : [
+				{
+					"stream_binding" : 0,
+					"stream_stride" : 12,
+					"stream_rate" : "Vertex"
+				}
+			]
+		},
+		{
+			"name" : "debug_line_cpu",
+			"vertex_attributes" : [
+				{
+					"attribute_location" : 0,
+					"attribute_binding" : 0,
+					"attribute_offset" : 0,
+					"attribute_format" : "Float3"
+				},
+				{
+					"attribute_location" : 1,
+					"attribute_binding" : 0,
+					"attribute_offset" : 12,
+					"attribute_format" : "UByte4N"
+				},
+				{
+					"attribute_location" : 2,
+					"attribute_binding" : 0,
+					"attribute_offset" : 16,
+					"attribute_format" : "Float3"
+				},
+				{
+					"attribute_location" : 3,
+					"attribute_binding" : 0,
+					"attribute_offset" : 28,
+					"attribute_format" : "UByte4N"
+				}
+			],
+			"vertex_streams" : [
+				{
+					"stream_binding" : 0,
+					"stream_stride" : 32,
+					"stream_rate" : "Instance"
+				}
+			]
+		}
+	],
+	"pipelines" : [
+		{
+			"name" : "debug_mesh",
+			"vertex_input" : "debug_mesh",
+			"render_pass" : "debug_pass",
+			"depth" : {
+				"write" : false,
+				"test" : "less_or_equal"
+			},
+			"blend": [
+				{
+					"src_colour": "SRC_ALPHA",
+					"dst_colour": "ONE_MINUS_SRC_ALPHA",
+					"op": "ADD",
+					"enable": "true"
+				}
+			],
+			"topology": "triangle_list",
+			"shaders" : [
+				{
+					"stage" : "vertex",
+					"shader" : "debug_mesh.glsl",
+					"includes" : [ "platform.h", "scene.h" ]
+				},
+				{
+					"stage" : "fragment",
+					"shader" : "debug_mesh.glsl",
+					"includes" : [ "platform.h" ]
+				}
+			]
+		},
+		{
+			"name" : "debug_line",
+			"inherit_from": "debug_mesh",
+			"topology": "line_list",
+			"shaders" : [
+				{
+					"stage" : "vertex",
+					"shader" : "debug_line.glsl",
+					"includes" : [ "platform.h", "scene.h" ]
+				},
+				{
+					"stage" : "fragment",
+					"shader" : "debug_line.glsl",
+					"includes" : [ "platform.h" ]
+				}
+			]
+		},
+		{
+			"name" : "commands_finalize",
+			"shaders" : [
+				{
+					"stage" : "compute",
+					"shader" : "debug_line.glsl",
+					"includes" : [ "platform.h", "scene.h", "debug_rendering.h" ]
+				}
+			]
+		},
+		{
+			"name" : "debug_line_gpu",
+			"render_pass" : "debug_pass",
+			"depth" : {
+				"write" : false,
+				"test" : "always"
+			},
+			"topology": "triangle_list",
+			"shaders" : [
+				{
+					"stage" : "vertex",
+					"shader" : "debug_line.glsl",
+					"includes" : [ "platform.h", "scene.h", "debug_rendering.h" ]
+				},
+				{
+					"stage" : "fragment",
+					"shader" : "debug_line.glsl",
+					"includes" : [ "platform.h" ]
+				}
+			]
+		},
+		{
+			"name" : "debug_line_2d_gpu",
+			"render_pass" : "debug_pass",
+			"depth" : {
+				"write" : false,
+				"test" : "always"
+			},
+			"topology": "triangle_list",
+			"shaders" : [
+				{
+					"stage" : "vertex",
+					"shader" : "debug_line.glsl",
+					"includes" : [ "platform.h", "scene.h", "debug_rendering.h" ]
+				},
+				{
+					"stage" : "fragment",
+					"shader" : "debug_line.glsl",
+					"includes" : [ "platform.h" ]
+				}
+			]
+		},
+		{
+			"name" : "debug_line_cpu",
+			"render_pass" : "debug_pass",
+			"depth" : {
+				"write" : false,
+				"test" : "always"
+			},
+			"vertex_input" : "debug_line_cpu",
+			"topology": "triangle_list",
+			"shaders" : [
+				{
+					"stage" : "vertex",
+					"shader" : "debug_line.glsl",
+					"includes" : [ "platform.h", "scene.h", "debug_rendering.h" ]
+				},
+				{
+					"stage" : "fragment",
+					"shader" : "debug_line.glsl",
+					"includes" : [ "platform.h" ]
+				}
+			]
+		},
+		{
+			"name" : "debug_line_2d_cpu",
+			"vertex_input" : "debug_line_cpu",
+			"render_pass" : "debug_pass",
+			"depth" : {
+				"write" : false,
+				"test" : "always"
+			},
+			"topology": "triangle_list",
+			"shaders" : [
+				{
+					"stage" : "vertex",
+					"shader" : "debug_line.glsl",
+					"includes" : [ "platform.h", "scene.h", "debug_rendering.h" ]
+				},
+				{
+					"stage" : "fragment",
+					"shader" : "debug_line.glsl",
+					"includes" : [ "platform.h" ]
+				}
+			]
+		}
+	]
+}

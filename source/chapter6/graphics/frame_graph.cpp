@@ -294,13 +294,13 @@ static void create_framebuffer( FrameGraph* frame_graph, FrameGraphNode* node ) 
         if ( width == 0 ) {
             width = info.texture.width;
         } else {
-            RASSERT( width = info.texture.width );
+            RASSERT( width == info.texture.width );
         }
 
         if ( height == 0 ) {
             height = info.texture.height;
         } else {
-            RASSERT( height = info.texture.height );
+            RASSERT( height == info.texture.height );
         }
 
         if ( TextureFormat::has_depth( info.texture.format ) ) {
@@ -330,13 +330,13 @@ static void create_framebuffer( FrameGraph* frame_graph, FrameGraphNode* node ) 
         if ( width == 0 ) {
             width = info.texture.width;
         } else {
-            RASSERT( width = info.texture.width );
+            RASSERT( width == info.texture.width );
         }
 
         if ( height == 0 ) {
             height = info.texture.height;
         } else {
-            RASSERT( height = info.texture.height );
+            RASSERT( height == info.texture.height );
         }
 
         if ( input_resource->type == FrameGraphResourceType_Texture ) {

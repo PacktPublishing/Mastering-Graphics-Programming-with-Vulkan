@@ -104,6 +104,10 @@
       <AdditionalLibraryDirectories>../binaries/SDL2-2.0.18/lib/x64;$(VULKAN_SDK)/lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>vulkan-1.lib;sdl2.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>copy /Y $(SolutionDir)..\binaries\SDL2-2.0.18\lib\x64\SDL2.dll $(SolutionDir)..\binaries\
+copy /Y $(SolutionDir)..\binaries\assimp\windows\bin\assimp-vc142-mt.dll $(SolutionDir)..\binaries\</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -123,6 +127,10 @@
       <AdditionalDependencies>vulkan-1.lib;sdl2.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>../binaries/SDL2-2.0.18/lib/x64;$(VULKAN_SDK)/lib</AdditionalLibraryDirectories>
     </Link>
+    <PostBuildEvent>
+      <Command>copy /Y $(SolutionDir)..\binaries\SDL2-2.0.18\lib\x64\SDL2.dll $(SolutionDir)..\binaries\
+copy /Y $(SolutionDir)..\binaries\assimp\windows\bin\assimp-vc142-mt.dll $(SolutionDir)..\binaries\</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\source\chapter1\graphics\command_buffer.hpp" />

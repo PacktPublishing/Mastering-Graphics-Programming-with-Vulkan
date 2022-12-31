@@ -5,7 +5,7 @@
 namespace raptor {
 
     struct Allocator;
-    
+
     // Common methods /////////////////////////////////////////////////////
     u32             leading_zeroes_u32( u32 x );
 #if defined(_MSC_VER)
@@ -105,6 +105,7 @@ namespace raptor {
 
         Allocator*          allocator   = nullptr;
         u8*                 bits        = nullptr;
+        u32                 size        = 0;
 
     }; // struct BitSet
 
@@ -121,4 +122,4 @@ namespace raptor {
 
     }; // struct BitSetFixed
 
-} // namespace raptor 
+} // namespace raptor

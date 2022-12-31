@@ -59,4 +59,9 @@ namespace raptor {
     i32                             roundi32( f64 value );
     i16                             roundi16( f32 value );
     i16                             roundi16( f64 value );
+
+    f32 get_random_value( f32 min, f32 max );
+
+    const f32 rpi = 3.1415926538f;
+    const f32 rpi_2 = 1.57079632679f;
 } // namespace raptor

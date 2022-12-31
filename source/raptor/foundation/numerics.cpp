@@ -1,7 +1,9 @@
 #include "numerics.hpp"
 
 #include <cmath>
+#include <stdlib.h>
 
+#include "foundation/assert.hpp"
 #include "foundation/log.hpp"
 
 namespace raptor {
@@ -72,5 +74,14 @@ hy_math_func_f32_f64( UINT16_MAX, u16, round )
 hy_math_func_f32_f64( INT32_MAX, i32, round )
 hy_math_func_f32_f64( INT16_MAX, i16, round )
 
-} // namespace raptor
+f32 get_random_value( f32 min, f32 max ) {
+    RASSERT( min < max );
 
+    f32 rnd = ( f32 )rand() / ( f32 )RAND_MAX;
+
+    rnd = ( max - min ) * rnd + min;
+
+    return rnd;
+}
+
+} // namespace raptor

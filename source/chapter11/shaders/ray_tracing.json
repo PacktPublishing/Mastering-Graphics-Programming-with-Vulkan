@@ -1,0 +1,26 @@
+{
+	"name" : "ray_tracing",
+	"pipelines" : [
+		{
+			"name" : "test",
+			"render_pass": "ray_tracing_pass",
+			"shaders" : [
+				{
+					"stage" : "raygen",
+					"shader" : "ray_tracing.glsl",
+					"includes" : ["platform.h", "scene.h"]
+				},
+				{
+					"stage" : "closest_hit",
+					"shader" : "ray_tracing.glsl",
+					"includes" : ["platform.h"]
+				},
+				{
+					"stage" : "miss",
+					"shader" : "ray_tracing.glsl",
+					"includes" : ["platform.h"]
+				}
+			]
+		}
+	]
+}

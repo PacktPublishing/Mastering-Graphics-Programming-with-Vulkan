@@ -1,0 +1,21 @@
+{
+	"name" : "fullscreen",
+	"pipelines" : [
+		{
+			"name" : "main",
+			"render_pass" : "swapchain",
+			"shaders" : [
+				{
+					"stage" : "vertex",
+					"shader" : "fullscreen.glsl",
+					"includes" : ["platform.h"]
+				},
+				{
+					"stage" : "fragment",
+					"shader" : "fullscreen.glsl",
+					"includes" : ["platform.h"]
+				}
+			]
+		}
+	]
+}

@@ -164,7 +164,9 @@ int main( int argc, char** argv ) {
 
         // TODO: add this to render graph itself.
         // Add utility textures (dithering, ...)
-        dither_texture = render_resources_loader.load_texture( "data/BayerDither4x4.png", false );
+        temporary_name_buffer.clear();
+        cstring dither_texture_path = temporary_name_buffer.append_use_f( "%s/BayerDither4x4.png", RAPTOR_DATA_FOLDER );
+        dither_texture = render_resources_loader.load_texture( dither_texture_path, false );
 
         // Parse techniques
         GpuTechniqueCreation gtc;

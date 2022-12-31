@@ -224,7 +224,7 @@ int main( int argc, char** argv ) {
     temporary_name_buffer.init( 1024, &scratch_allocator );
 
     // Create binaries folders
-    cstring shader_binaries_folder = temporary_name_buffer.append_use_f( "%sshaders/", RAPTOR_DATA_FOLDER );
+    cstring shader_binaries_folder = temporary_name_buffer.append_use_f( "%s/shaders /", RAPTOR_DATA_FOLDER );
     if ( !directory_exists(shader_binaries_folder) ) {
         if ( directory_create( shader_binaries_folder ) ) {
             rprint( "Created folder %s\n", shader_binaries_folder );
@@ -247,42 +247,26 @@ int main( int argc, char** argv ) {
 
         // TODO: add this to render graph itself.
         // Add utility textures (dithering, ...)
-        dither_texture = render_resources_loader.load_texture( "data/BayerDither4x4.png", false );
+        temporary_name_buffer.clear();
+        cstring dither_texture_path = temporary_name_buffer.append_use_f( "%s/BayerDither4x4.png", RAPTOR_DATA_FOLDER );
+        dither_texture = render_resources_loader.load_texture( dither_texture_path, false );
 
         // Parse techniques
         GpuTechniqueCreation gtc;
-        temporary_name_buffer.clear();
-        cstring full_screen_pipeline_path = temporary_name_buffer.append_use_f( "%s/%s", RAPTOR_SHADER_FOLDER, "fullscreen.json" );
-        render_resources_loader.load_gpu_technique( full_screen_pipeline_path );
-
-        temporary_name_buffer.clear();
-        cstring main_pipeline_path = temporary_name_buffer.append_use_f( "%s/%s", RAPTOR_SHADER_FOLDER, "main.json" );
-        render_resources_loader.load_gpu_technique( main_pipeline_path );
-
-        temporary_name_buffer.clear();
-        cstring pbr_pipeline_path = temporary_name_buffer.append_use_f( "%s/%s", RAPTOR_SHADER_FOLDER, "pbr_lighting.json" );
-        render_resources_loader.load_gpu_technique( pbr_pipeline_path );
-
-        temporary_name_buffer.clear();
-        cstring dof_pipeline_path = temporary_name_buffer.append_use_f( "%s/%s", RAPTOR_SHADER_FOLDER, "dof.json" );
-        render_resources_loader.load_gpu_technique( dof_pipeline_path );
-
-        temporary_name_buffer.clear();
-        cstring cloth_pipeline_path = temporary_name_buffer.append_use_f( "%s/%s", RAPTOR_SHADER_FOLDER, "cloth.json" );
-        render_resources_loader.load_gpu_technique( cloth_pipeline_path );
-
-        temporary_name_buffer.clear();
-        cstring debug_pipeline_path = temporary_name_buffer.append_use_f( "%s/%s", RAPTOR_SHADER_FOLDER, "debug.json" );
-        render_resources_loader.load_gpu_technique( debug_pipeline_path );
-
-        temporary_name_buffer.clear();
-        cstring culling_pipeline_path = temporary_name_buffer.append_use_f( "%s/%s", RAPTOR_SHADER_FOLDER, "culling.json" );
-        render_resources_loader.load_gpu_technique( culling_pipeline_path );
-
-        if ( gpu.mesh_shaders_extension_present ) {
+        const bool use_shader_cache = true;
+        auto parse_technique = [ & ]( cstring technique_name ) {
             temporary_name_buffer.clear();
-            cstring meshlet_pipeline_path = temporary_name_buffer.append_use_f( "%s/%s", RAPTOR_SHADER_FOLDER, "meshlet.json" );
-            render_resources_loader.load_gpu_technique( meshlet_pipeline_path );
+            cstring path = temporary_name_buffer.append_use_f( "%s/%s", RAPTOR_SHADER_FOLDER, technique_name );
+            render_resources_loader.load_gpu_technique( path, use_shader_cache );
+        };
+
+        cstring techniques[] = { "meshlet.json", "fullscreen.json", "main.json",
+                                 "pbr_lighting.json", "dof.json", "cloth.json", "debug.json",
+                                 "culling.json" };
+
+        const sizet num_techniques = ArraySize( techniques );
+        for ( sizet t = 0; t < num_techniques; ++t ) {
+            parse_technique( techniques[ t ] );
         }
     }
 
@@ -488,7 +472,7 @@ int main( int argc, char** argv ) {
                 const ImVec2 window_size = ImGui::GetWindowSize();
 
                 FrameGraphResource* resource = frame_graph.get_resource( "depth" );
-                
+
                 ImGui::Image( ( ImTextureID )&resource->resource_info.texture.handle, window_size );
 
             }
@@ -561,7 +545,7 @@ int main( int argc, char** argv ) {
             }
 
             // Test math to check correctness.
-            if( false ) 
+            if( false )
             {
                 vec4s pos{ -14.5f, 1.28f, 0.f, 1.f };
                 f32 radius = 0.5f;

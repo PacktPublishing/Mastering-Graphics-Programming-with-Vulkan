@@ -1,0 +1,59 @@
+{
+	"name" : "reflections",
+	"pipelines" : [
+		{
+			"name" : "reflections_rt",
+			"render_pass" : "reflections_pass",
+			"shaders" : [
+				{
+					"stage" : "raygen",
+					"shader" : "reflections.glsl",
+					"includes" : ["platform.h", "scene.h", "mesh.h", "lighting.h", "debug_rendering.h"]
+				},
+				{
+					"stage" : "closest_hit",
+					"shader" : "reflections.glsl",
+					"includes" : ["platform.h", "scene.h", "mesh.h"]
+				},
+				{
+					"stage" : "miss",
+					"shader" : "reflections.glsl",
+					"includes" : ["platform.h"]
+				}
+			]
+		},
+		{
+			"name": "svgf_accumulation",
+			"render_pass": "svgf_accumulation_pass",
+			"shaders" : [
+				{
+					"stage" : "compute",
+					"shader" : "reflections.glsl",
+					"includes" : ["platform.h", "scene.h"]
+				}
+			]
+		},
+		{
+			"name": "svgf_variance",
+			"render_pass": "svgf_variance_pass",
+			"shaders" : [
+				{
+					"stage" : "compute",
+					"shader" : "reflections.glsl",
+					"includes" : ["platform.h"]
+				}
+			]
+		},
+		{
+			"name": "svgf_wavelet",
+			"render_pass": "svgf_wavelet_pass",
+			"shaders" : [
+				{
+					"stage" : "compute",
+					"shader" : "reflections.glsl",
+					"includes" : ["platform.h", "scene.h"]
+				}
+			]
+		}
+	]
+}

@@ -15,6 +15,7 @@ struct GameCamera {
     void                            reset();
 
     void                            update( raptor::InputService* input, u32 window_width, u32 window_height, f32 delta_time );
+    void                            apply_jittering( f32 x, f32 y );
 
     Camera                          camera;
 
