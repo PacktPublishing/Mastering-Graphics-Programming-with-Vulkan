@@ -4,6 +4,17 @@
 #include "platform.hpp"
 #include "string.hpp"
 
+static const char* kDefault3DModel = "../deps/src/glTF-Sample-Models/2.0/Sponza/glTF/Sponza.gltf";
+
+#define InjectDefault3DModel() \
+    if (raptor::file_exists(kDefault3DModel)) {\
+        argc = 2;\
+        argv[1] = const_cast<char*>(kDefault3DModel);\
+    }\
+    else {\
+       exit(-1);\
+    }
+
 namespace raptor {
 
 namespace glTF {
