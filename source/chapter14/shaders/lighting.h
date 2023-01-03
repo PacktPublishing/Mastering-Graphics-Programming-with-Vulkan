@@ -537,8 +537,7 @@ vec4 calculate_lighting(vec4 base_colour, vec3 orm, vec3 normal, vec3 emissive, 
 
     vec2 upsampling_weights = textureLod(global_textures[nonuniformEXT(bilateral_weights_texture_index)], screen_uv, 0).rg;
     vec3 indirect_irradiance = textureLod(global_textures[nonuniformEXT(indirect_lighting_texture_index)], screen_uv, 0).rgb;
-    vec3 reflection_color = texture( global_textures[reflections_texture_index], screen_uv ).rgb;
-    vec3 indirect_diffuse =  ( roughness < 0.3 ? reflection_color : indirect_irradiance  * gi_intensity ) * base_colour.rgb;
+    vec3 indirect_diffuse = indirect_irradiance * gi_intensity * base_colour.rgb;
 
     const float ao = 1.0f;
     final_color.rgb += (kD * indirect_diffuse) * ao;

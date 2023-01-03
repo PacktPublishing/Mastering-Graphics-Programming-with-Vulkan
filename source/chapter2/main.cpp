@@ -124,7 +124,8 @@ static void upload_material( MeshData& mesh_data, const MeshDraw& mesh_draw, con
     mesh_data.alpha_cutoff = mesh_draw.alpha_cutoff;
     mesh_data.flags = mesh_draw.flags;
 
-    mat4s model = glms_scale_make( glms_vec3_scale( mesh_draw.scale, global_scale ) );
+    // NOTE: for left-handed systems (as defined in cglm) need to invert positive and negative Z.
+    mat4s model = glms_scale_make( glms_vec3_mul( mesh_draw.scale, { global_scale, global_scale, -global_scale } ) );
     mesh_data.m = model;
     mesh_data.inverseM = glms_mat4_inv( glms_mat4_transpose( model ) );
 }

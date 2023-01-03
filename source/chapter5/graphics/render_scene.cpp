@@ -62,12 +62,9 @@ static void copy_gpu_material_data( GpuMeshData& gpu_mesh_data, const Mesh& mesh
 static void copy_gpu_mesh_matrix( GpuMeshData& gpu_mesh_data, const Mesh& mesh, const f32 global_scale, const SceneGraph* scene_graph ) {
     if ( scene_graph ) {
         // Apply global scale matrix
-        if ( global_scale != 1.f ) {
-            const mat4s scale_matrix = glms_scale_make( { global_scale, global_scale, global_scale } );
-            gpu_mesh_data.world = glms_mat4_mul( scale_matrix, scene_graph->world_matrices[ mesh.scene_graph_node_index ] );
-        } else {
-            gpu_mesh_data.world = scene_graph->world_matrices[ mesh.scene_graph_node_index ];
-        }
+        // NOTE: for left-handed systems (as defined in cglm) need to invert positive and negative Z.
+        const mat4s scale_matrix = glms_scale_make( { global_scale, global_scale, -global_scale } );
+        gpu_mesh_data.world = glms_mat4_mul( scale_matrix, scene_graph->world_matrices[ mesh.scene_graph_node_index ] );
 
         gpu_mesh_data.inverse_world = glms_mat4_inv( glms_mat4_transpose( gpu_mesh_data.world ) );
     } else {

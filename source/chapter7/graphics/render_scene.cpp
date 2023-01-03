@@ -2093,30 +2093,25 @@ void RenderScene::upload_gpu_data( UploadGpuDataContext& context ) {
 
     // Sort lights based on Z
     mat4s& world_to_camera = scene_data.world_to_camera;
-    float z_far = 100.0f;
+    float z_far = scene_data.z_far;
     for ( u32 i = 0; i < k_num_lights; ++i ) {
         Light& light = lights[ i ];
 
-        vec3s camera_pos{ scene_data.camera_position.x, scene_data.camera_position.y, scene_data.camera_position.z };
-        vec3s light_camera_dir = glms_normalize( glms_vec3_sub( light.world_position, camera_pos ) );
-
         vec4s p{ light.world_position.x, light.world_position.y, light.world_position.z, 1.0f };
-        vec3s p_min = glms_vec3_add( light.world_position, glms_vec3_scale( light_camera_dir, -light.radius ) );
-        vec3s p_max = glms_vec3_add( light.world_position, glms_vec3_scale( light_camera_dir,  light.radius ) );
-
-        vec4s p_min4{ p_min.x, p_min.y, p_min.z, 1.0f };
-        vec4s p_max4{ p_max.x, p_max.y, p_max.z, 1.0f };
 
         vec4s projected_p = glms_mat4_mulv( world_to_camera, p );
-        vec4s projected_p_min = glms_mat4_mulv( world_to_camera, p_min4 );
-        vec4s projected_p_max = glms_mat4_mulv( world_to_camera, p_max4 );
+        vec4s projected_p_min = glms_vec4_add( projected_p, { 0,0,-light.radius, 0 } );
+        vec4s projected_p_max = glms_vec4_add( projected_p, { 0,0,light.radius, 0 } );
 
         // NOTE(marco): linearize depth
         SortedLight& sorted_light = sorted_lights[ i ];
         sorted_light.light_index = i;
-        sorted_light.projected_z = ( -projected_p.z - scene_data.z_near ) / ( z_far - scene_data.z_near );
-        sorted_light.projected_z_min = ( -projected_p_min.z - scene_data.z_near ) / ( z_far - scene_data.z_near );
-        sorted_light.projected_z_max = ( -projected_p_max.z - scene_data.z_near ) / ( z_far - scene_data.z_near );
+        // Remove negative numbers as they cause false negatives for bin 0.
+        sorted_light.projected_z = ( ( projected_p.z - scene_data.z_near ) / ( z_far - scene_data.z_near ) );
+        sorted_light.projected_z_min = ( ( projected_p_min.z - scene_data.z_near ) / ( z_far - scene_data.z_near ) );
+        sorted_light.projected_z_max = ( ( projected_p_max.z - scene_data.z_near ) / ( z_far - scene_data.z_near ) );
+
+        //rprint( "Light Z %f, Zmin %f, Zmax %f\n", sorted_light.projected_z, sorted_light.projected_z_min, sorted_light.projected_z_max );
     }
 
     qsort( sorted_lights.data, k_num_lights, sizeof( SortedLight ), sorting_light_fn );
@@ -2218,7 +2213,7 @@ void RenderScene::upload_gpu_data( UploadGpuDataContext& context ) {
         float radius = light.radius;
 
         vec4s view_space_pos = glms_mat4_mulv( game_camera.camera.view, pos );
-        bool camera_visible = view_space_pos.z - radius < game_camera.camera.near_plane;
+        bool camera_visible = -view_space_pos.z - radius < game_camera.camera.near_plane;
 
         if ( !camera_visible && context.skip_invisible_lights ) {
             continue;
@@ -2227,7 +2222,7 @@ void RenderScene::upload_gpu_data( UploadGpuDataContext& context ) {
         //rprint( "Camera vis %u view z %f\n", camera_visible ? 1 : 0, view_space_pos.z );
 
         // X is positive, then it returns the same values as the longer method.
-        vec2s cx{ view_space_pos.x, -view_space_pos.z };
+        vec2s cx{ view_space_pos.x, view_space_pos.z };
         const f32 tx_squared = glms_vec2_dot( cx, cx ) - ( radius * radius );
         const bool tx_camera_inside = tx_squared <= 0;//
         vec2s vx{ sqrtf( tx_squared ), radius };
@@ -2236,7 +2231,7 @@ void RenderScene::upload_gpu_data( UploadGpuDataContext& context ) {
         mat2s xtransf_max{ vx.x, -vx.y, vx.y, vx.x };
         vec2s maxx = glms_mat2_mulv( xtransf_max, cx );
 
-        vec2s cy{ -view_space_pos.y, -view_space_pos.z };
+        vec2s cy{ -view_space_pos.y, view_space_pos.z };
         const f32 ty_squared = glms_vec2_dot( cy, cy ) - ( radius * radius );
         const bool ty_camera_inside = ty_squared <= 0;//
         vec2s vy{ sqrtf( ty_squared ), radius };
@@ -2291,7 +2286,7 @@ void RenderScene::upload_gpu_data( UploadGpuDataContext& context ) {
                 // adjust z on the near plane.
                 // visible Z is negative, thus corner vs will be always negative, but near is positive.
                 // get positive Z and invert ad the end.
-                corner_vs.z = -glm_max( game_camera.camera.near_plane, -corner_vs.z );
+                corner_vs.z = glm_max( game_camera.camera.near_plane, corner_vs.z );
 
                 vec4s corner_ndc = glms_mat4_mulv( game_camera.camera.projection, corner_vs );
                 corner_ndc = glms_vec4_divs( corner_ndc, corner_ndc.w );
