@@ -244,7 +244,7 @@ void file_parent_directory( Directory* directory ) {
         last_directory_separator = strrchr( new_directory.path, '\\' );
         sizet second_index = last_directory_separator - new_directory.path;
 
-        if ( last_directory_separator > 0 ) {
+        if ( last_directory_separator ) {
             new_directory.path[second_index] = 0;
         }
         else {
