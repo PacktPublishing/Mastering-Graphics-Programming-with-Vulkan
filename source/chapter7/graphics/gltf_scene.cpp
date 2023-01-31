@@ -16,7 +16,7 @@
 #include "external/cglm/struct/vec3.h"
 #include "external/cglm/struct/quat.h"
 
-#include "external/tracy/Tracy.hpp"
+#include "external/tracy/tracy/Tracy.hpp"
 #include "external/meshoptimizer/meshoptimizer.h"
 
 namespace raptor {
@@ -580,7 +580,7 @@ void glTFScene::init( cstring filename, cstring path, Allocator* resident_alloca
     // Create meshlets index buffer, that will be used to emulate meshlets if mesh shaders are not present.
     BufferCreation bc{};
     bc.set( VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, ResourceUsageType::Stream, meshlets_index_count * sizeof( u32 ) * 8 ).set_name( "meshlets_index_buffer" );
-    
+
     for ( u32 i = 0; i < k_max_frames; ++i ) {
         meshlets_index_buffer_sb[ i ] = renderer->gpu->create_buffer( bc );
     }
@@ -598,7 +598,7 @@ void glTFScene::init( cstring filename, cstring path, Allocator* resident_alloca
     for ( u32 i = 0; i < k_max_frames; ++i ) {
         meshlets_visible_instances_sb[ i ] = renderer->gpu->create_buffer( bc );
     }
-    
+
     i64 end_building_meshlets = time_now();
 
     // Before unloading buffer data, load animations
@@ -818,6 +818,7 @@ void glTFScene::shutdown( Renderer* renderer ) {
 
         gpu.destroy_buffer( mesh_task_indirect_late_commands_sb[ i ] );
         gpu.destroy_buffer( mesh_task_indirect_count_late_sb[ i ] );
+        gpu.destroy_buffer( meshlet_instances_indirect_count_sb[ i ] );
 
         gpu.destroy_buffer( lights_lut_sb[ i ] );
         gpu.destroy_buffer( lights_tiles_sb[ i ] );
@@ -826,6 +827,7 @@ void glTFScene::shutdown( Renderer* renderer ) {
         gpu.destroy_descriptor_set( mesh_shader_early_descriptor_set[ i ] );
         gpu.destroy_descriptor_set( mesh_shader_late_descriptor_set[ i ] );
         gpu.destroy_descriptor_set( mesh_shader_transparent_descriptor_set[ i ] );
+        gpu.destroy_descriptor_set( meshlet_emulation_descriptor_set[ i ] );
     }
 
     for ( u32 i = 0; i < images.size; ++i) {
@@ -1102,7 +1104,7 @@ void glTFScene::prepare_draws( Renderer* renderer, StackAllocator* scratch_alloc
         debug_line_commands_sb = renderer->gpu->create_buffer( buffer_creation );
     }
 
-    //if ( renderer->gpu->mesh_shaders_extension_present ) 
+    //if ( renderer->gpu->mesh_shaders_extension_present )
     {
         const u64 meshlet_hashed_name = hash_calculate( "meshlet" );
         GpuTechnique* meshlet_technique = renderer->resource_cache.techniques.get( meshlet_hashed_name );
@@ -1132,7 +1134,7 @@ void glTFScene::prepare_draws( Renderer* renderer, StackAllocator* scratch_alloc
                 mesh_shader_late_descriptor_set[ i ] = renderer->gpu->create_descriptor_set( ds_creation );
 
             }
-            
+
             ds_creation.reset().buffer( scene_cb, 0 ).buffer( meshes_sb, 2 ).buffer( mesh_instances_sb, 10 ).buffer( meshlets_sb, 1 )
                 .buffer( meshlets_data_sb, 3 ).buffer( meshlets_vertex_pos_sb, 4 ).buffer( meshlets_vertex_data_sb, 5 )
                 .buffer( mesh_task_indirect_early_commands_sb[ i ], 6 ).buffer( mesh_task_indirect_count_early_sb[ i ], 7 ).buffer( meshlets_instances_sb[ i ], 9 )

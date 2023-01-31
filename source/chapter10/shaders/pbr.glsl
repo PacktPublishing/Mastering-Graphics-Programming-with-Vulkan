@@ -125,7 +125,7 @@ void main() {
             const float current_depth = length(position_to_light) / light.radius;
             const float closest_depth = texture(global_textures_cubemaps[nonuniformEXT(cubemap_shadows_index)], vec3(position_to_light)).r;
 
-            imageStore(global_images_2d[debug_texture_index], pos.xy, vec4(current_depth, closest_depth, vector_to_depth_value(position_to_light, light.radius), 1));
+            imageStore(global_images_2d[debug_texture_index], pos.xy, vec4(current_depth, closest_depth, vector_to_depth_value(position_to_light, light.radius, light.rcp_n_minus_f), 1));
         }
         else if (debug_modes == 3) {
 
@@ -155,7 +155,7 @@ void main() {
             Light light = lights[ 0 ];
             vec3 position_to_light = pixel_world_position - light.world_position;
             const float current_depth = length(position_to_light) / light.radius;
-            float current_depth2 = vector_to_depth_value(position_to_light, light.radius);
+            float current_depth2 = vector_to_depth_value(position_to_light, light.radius, light.rcp_n_minus_f);
             const float closest_depth = texture(global_textures_cubemaps[nonuniformEXT(cubemap_shadows_index)], vec3(position_to_light)).r;
 
             imageStore(global_images_2d[debug_texture_index], pos.xy, vec4(current_depth, current_depth2, closest_depth, 1));
@@ -170,7 +170,7 @@ void main() {
             Light light = lights[ 0 ];
             vec3 position_to_light = light.world_position - pixel_world_position;
             const float current_depth = length(position_to_light) / light.radius;
-            float current_depth2 = vector_to_depth_value(position_to_light, light.radius);
+            float current_depth2 = vector_to_depth_value(position_to_light, light.radius, light.rcp_n_minus_f);
             const float closest_depth = texture(global_textures_cubemaps[nonuniformEXT(cubemap_shadows_index)], vec3(position_to_light)).r;
 
             imageStore(global_images_2d[debug_texture_index], pos.xy, vec4(current_depth, current_depth2, closest_depth, 1));

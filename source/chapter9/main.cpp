@@ -35,7 +35,7 @@
 
 #include "external/imgui/imgui.h"
 #include "external/stb_image.h"
-#include "external/tracy/Tracy.hpp"
+#include "external/tracy/tracy/Tracy.hpp"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -449,7 +449,7 @@ int main( int argc, char** argv ) {
     }
 
     while ( !window.requested_exit ) {
-        ZoneScopedN("RenderLoop")
+        ZoneScopedN("RenderLoop");
 
         // New frame
         if ( !window.minimized ) {

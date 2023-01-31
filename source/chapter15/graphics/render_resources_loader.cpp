@@ -19,7 +19,7 @@ static bool             parse_gpu_pipeline( nlohmann::json& pipeline, raptor::Pi
                                             raptor::StringBuffer& shader_buffer, raptor::Allocator* temp_allocator, raptor::Renderer* renderer,
                                             raptor::FrameGraph* frame_graph, raptor::StringBuffer& pass_name_buffer,
                                             const Array<VertexInputCreation>& vertex_input_creations, FlatHashMap<u64, u16>& name_to_vertex_inputs,
-                                            cstring technique_name, bool use_cache, bool parent_technique );
+                                            cstring technique_name, bool use_cache, bool parent_technique, bool& is_shader_changed );
 
 // RenderResourcesLoader //////////////////////////////////////////////////
 void RenderResourcesLoader::init( raptor::Renderer* renderer_, raptor::StackAllocator* temp_allocator_, raptor::FrameGraph* frame_graph_ ) {
@@ -31,16 +31,16 @@ void RenderResourcesLoader::init( raptor::Renderer* renderer_, raptor::StackAllo
 void RenderResourcesLoader::shutdown() {
 }
 
-GpuTechnique* RenderResourcesLoader::load_gpu_technique( cstring json_path, bool use_shader_cache ) {
+void RenderResourcesLoader::parse_gpu_technique( GpuTechniqueCreation& technique_creation, cstring json_path, bool use_shader_cache, bool& is_techinque_changed ) {
 
     using namespace raptor;
-    i64 begin_time = time_now();
-    sizet allocated_marker = temp_allocator->get_marker();
+    
+    is_techinque_changed = false;
 
     FileReadResult read_result = file_read_text( json_path, temp_allocator );
 
     StringBuffer path_buffer;
-    path_buffer.init( 1024, temp_allocator );
+    path_buffer.init( rkilo( 1 ), temp_allocator );
 
     StringBuffer shader_code_buffer;
     shader_code_buffer.init( rmega( 2 ), temp_allocator );
@@ -48,20 +48,24 @@ GpuTechnique* RenderResourcesLoader::load_gpu_technique( cstring json_path, bool
     StringBuffer pass_name_buffer;
     pass_name_buffer.init( rkilo( 2 ), temp_allocator );
 
+    StringBuffer technique_name_buffer;
+    technique_name_buffer.init( 256, temp_allocator );
+
     using json = nlohmann::json;
 
     json json_data = json::parse( read_result.data );
 
     // parse 1 pipeline
     json name = json_data[ "name" ];
-    std::string name_string;
     if ( name.is_string() ) {
+        std::string name_string;
         name.get_to( name_string );
-        rprint( "Parsing GPU Technique %s\n", name_string.c_str() );
+
+        technique_name_buffer.append_f( "%s", name_string.c_str() );
+        rprint( "Parsing GPU Technique %s\n", technique_name_buffer.data );
     }
 
-    GpuTechniqueCreation technique_creation;
-    technique_creation.name = name_string.c_str();
+    technique_creation.name = technique_name_buffer.data;
 
     Array<VertexInputCreation> vertex_input_creations;
 
@@ -164,6 +168,8 @@ GpuTechnique* RenderResourcesLoader::load_gpu_technique( cstring json_path, bool
 
             bool add_pass = true;
 
+            bool parent_shader_changed = false;
+
             json inherit_from = pipeline[ "inherit_from" ];
             if ( inherit_from.is_string() ) {
                 std::string inherited_name;
@@ -175,29 +181,65 @@ GpuTechnique* RenderResourcesLoader::load_gpu_technique( cstring json_path, bool
                     pipeline_i[ "name" ].get_to( name );
 
                     if ( name == inherited_name ) {
-                        add_pass = parse_gpu_pipeline( pipeline_i, pc, path_buffer, shader_code_buffer, temp_allocator, renderer, frame_graph, pass_name_buffer, vertex_input_creations, name_to_vertex_inputs, technique_creation.name, false, true  );
+                        add_pass = parse_gpu_pipeline( pipeline_i, pc, path_buffer, shader_code_buffer, temp_allocator, renderer, frame_graph, pass_name_buffer, vertex_input_creations, name_to_vertex_inputs, technique_creation.name, false, true, parent_shader_changed );
                         break;
                     }
                 }
             }
 
-            add_pass = add_pass && parse_gpu_pipeline( pipeline, pc, path_buffer, shader_code_buffer, temp_allocator, renderer, frame_graph, pass_name_buffer, vertex_input_creations, name_to_vertex_inputs, technique_creation.name, use_shader_cache, false );
+            bool current_shader_changed = false;
+            add_pass = add_pass && parse_gpu_pipeline( pipeline, pc, path_buffer, shader_code_buffer, temp_allocator, renderer, frame_graph, pass_name_buffer, vertex_input_creations, name_to_vertex_inputs, technique_creation.name, use_shader_cache, false, current_shader_changed );
 
             if ( add_pass ) {
                 technique_creation.creations[ technique_creation.num_creations++ ] = pc;
+
+                is_techinque_changed = current_shader_changed || parent_shader_changed;
             }
         }
     }
+}
+
+
+GpuTechnique* RenderResourcesLoader::load_gpu_technique( cstring json_path, bool use_shader_cache, bool& is_shader_changed ) {
+
+    i64 begin_time = time_now();
+    sizet allocated_marker = temp_allocator->get_marker();
+
+    GpuTechniqueCreation technique_creation;
+    parse_gpu_technique( technique_creation, json_path, use_shader_cache, is_shader_changed );
 
     // Create technique and cache it.
     GpuTechnique* technique = renderer->create_technique( technique_creation );
 
+    // Needs to be freed after the technique is created, or the name will be 0.
     temp_allocator->free_marker( allocated_marker );
 
     rprint( "Created technique %s in %f seconds\n", technique_creation.name, time_from_seconds( begin_time ) );
 
     return technique;
 }
+
+void RenderResourcesLoader::reload_gpu_technique( cstring json_path, bool use_shader_cache, bool& is_technique_changed ) {
+
+    i64 begin_time = time_now();
+    sizet allocated_marker = temp_allocator->get_marker();
+
+    GpuTechniqueCreation technique_creation;
+    parse_gpu_technique( technique_creation, json_path, use_shader_cache, is_technique_changed );
+
+    if ( is_technique_changed ) {
+        // Destroy old gpu technique
+        GpuTechnique* old_technique = renderer->resource_cache.techniques.get( hash_calculate( technique_creation.name ) );
+        renderer->destroy_technique( old_technique );
+        // Load new one
+        GpuTechnique* new_technique = renderer->create_technique( technique_creation );
+    }
+
+    temp_allocator->free_marker( allocated_marker );
+
+    rprint( "Re-created technique %s in %f seconds\n", technique_creation.name, time_from_seconds( begin_time ) );
+}
+
 
 TextureResource* RenderResourcesLoader::load_texture( cstring path, bool generate_mipmaps ) {
     int comp, width, height;
@@ -239,7 +281,6 @@ TextureResource* RenderResourcesLoader::load_texture( cstring path, bool generat
 
     return texture;
 }
-
 
 VkBlendFactor get_blend_factor( const std::string factor ) {
     if ( factor == "ZERO" ) {
@@ -356,9 +397,11 @@ bool parse_gpu_pipeline( nlohmann::json& pipeline, raptor::PipelineCreation& pc,
                          raptor::StringBuffer& shader_buffer, raptor::Allocator* temp_allocator, raptor::Renderer* renderer,
                          raptor::FrameGraph* frame_graph, raptor::StringBuffer& pass_name_buffer,
                          const Array<VertexInputCreation>& vertex_input_creations, FlatHashMap<u64, u16>& name_to_vertex_inputs,
-                         cstring technique_name, bool use_cache, bool parent_technique ) {
+                         cstring technique_name, bool use_cache, bool parent_technique, bool& shader_changed ) {
     using json = nlohmann::json;
     using namespace raptor;
+
+    shader_changed = false;
 
     json json_name = pipeline[ "name" ];
     if ( json_name.is_string() ) {
@@ -528,6 +571,9 @@ bool parse_gpu_pipeline( nlohmann::json& pipeline, raptor::PipelineCreation& pc,
                         // Write spirv
                         file_write_binary( shader_spirv_path, ( void* )shader_create_info.pCode, sizeof( u32 ) * shader_create_info.codeSize );
                     }
+
+                    // Only when compiling a shader we can say that it is changed.
+                    shader_changed = true;
                 }
                 else {
                     rprint( "Error compiling shader %s stage %s", pc.shaders.name, to_compiler_extension( shader_stage.type ) );

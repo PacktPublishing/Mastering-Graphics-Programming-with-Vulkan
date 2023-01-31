@@ -16,7 +16,7 @@ struct Light {
     float           intensity;
 
     float           shadow_map_resolution;
-    float           lpad00;
+    float           rcp_n_minus_f; // Calculation of 1 / (n - f) used to retrieve cubemap shadows depth value.
     float           lpad01;
     float           lpad02;
 };
@@ -102,21 +102,16 @@ float attenuation_square_falloff(vec3 position_to_light, float light_inverse_rad
     return (smoothFactor * smoothFactor) / max(distance_square, 1e-4);
 }
 
-float vector_to_depth_value( inout vec3 Vec, float radius) {
-    vec3 AbsVec = abs(Vec);
-    float LocalZcomp = max(AbsVec.x, max(AbsVec.y, AbsVec.z));
-
-    if (LocalZcomp == AbsVec.z) {
-        Vec.x *= -1;
-    }
-    else {
-        Vec.z *= -1;
-    }
+float vector_to_depth_value( vec3 direction, float radius, float rcp_n_minus_f ) {
+    const vec3 absolute_vec = abs(direction);
+    const float local_z_component = max(absolute_vec.x, max(absolute_vec.y, absolute_vec.z));
 
     const float f = radius;
     const float n = 0.01f;
-    float NormZComp = -(f / (n - f) - (n * f) / (n - f) / LocalZcomp);
-    return NormZComp;
+    // Original value, left for reference.
+    //const float normalized_z_component = -(f / (n - f) - (n * f) / (n - f) / local_z_component);
+    const float normalized_z_component = ( n * f * rcp_n_minus_f ) / local_z_component - f * rcp_n_minus_f;
+    return normalized_z_component;
 }
 
 // https://www.gamedev.net/articles/programming/graphics/contact-hardening-soft-shadows-made-fast-r4906/
@@ -143,7 +138,7 @@ vec3 calculate_point_light_contribution(vec4 albedo, vec3 orm, vec3 normal, vec3
     vec3 pixel_luminance = vec3(0);
 
     vec3 shadow_position_to_light = world_position - light.world_position;
-    const float current_depth = vector_to_depth_value(shadow_position_to_light, light.radius);
+    const float current_depth = vector_to_depth_value(shadow_position_to_light, light.radius, light.rcp_n_minus_f);
     const float bias = 0.0001f;
 
 #if 1
@@ -341,14 +336,8 @@ vec4 calculate_lighting(vec4 base_colour, vec3 orm, vec3 normal, vec3 emissive, 
 
         vec3 AbsVec = abs(position_to_light);
         float LocalZcomp = max(AbsVec.x, max(AbsVec.y, AbsVec.z));
-        if (LocalZcomp == AbsVec.z) {
-            position_to_light.x *= -1;
-        }
-        else {
-            position_to_light.z *= -1;
-        }
 
-        const float current_depth = vector_to_depth_value(position_to_light, light.radius);
+        const float current_depth = vector_to_depth_value(position_to_light, light.radius, light.rcp_n_minus_f);
         const float closest_depth = texture(global_textures_cubemaps[nonuniformEXT(cubemap_shadows_index)], vec3(position_to_light)).r;
         const float bias = 0.0003f;
         float shadow = current_depth - bias < closest_depth ? 1 : 0;
@@ -370,7 +359,7 @@ vec4 calculate_lighting(vec4 base_colour, vec3 orm, vec3 normal, vec3 emissive, 
             vec4 pixel_view_position = world_to_camera * vec4( world_position.xyz, 1 );
             position_to_light = light_view_position.xyz - pixel_view_position.xyz;
             //position_to_light.x *= -1;
-            float current_depth = vector_to_depth_value(position_to_light, light.radius);
+            float current_depth = vector_to_depth_value(position_to_light, light.radius, light.rcp_n_minus_f);
             const float closest_depth = texture(global_textures_cubemaps[nonuniformEXT(cubemap_shadows_index)], vec3(position_to_light)).r;
             shadow = current_depth + bias < closest_depth ? 1 : 0;
             final_color.rgb = shadow.xxx;
@@ -380,7 +369,7 @@ vec4 calculate_lighting(vec4 base_colour, vec3 orm, vec3 normal, vec3 emissive, 
             vec4 pixel_view_position = world_to_camera * vec4( world_position.xyz, 1 );
             position_to_light = pixel_view_position.xyz - light_view_position.xyz;
             position_to_light.z *= -1;
-            float current_depth = vector_to_depth_value(position_to_light, light.radius);
+            float current_depth = vector_to_depth_value(position_to_light, light.radius, light.rcp_n_minus_f);
             const float closest_depth = texture(global_textures_cubemaps[nonuniformEXT(cubemap_shadows_index)], vec3(position_to_light)).r;
             shadow = current_depth - bias > closest_depth ? 1 : 0;
             final_color.rgb = shadow.xxx;

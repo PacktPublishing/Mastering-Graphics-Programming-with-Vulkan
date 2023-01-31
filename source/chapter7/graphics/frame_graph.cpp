@@ -15,8 +15,7 @@
 
 #define FRAME_GRAPH_DEBUG 0
 
-namespace raptor
-{
+namespace raptor {
 
 static FrameGraphResourceType string_to_resource_type( cstring input_type ) {
     if ( strcmp( input_type, "texture" ) == 0 ) {
@@ -834,15 +833,14 @@ void FrameGraphResourceCache::shutdown( )
         u32 resource_index = resource_map.get( it );
         FrameGraphResource* resource = resources.get( resource_index );
 
-        {
-            if ( resource->type == FrameGraphResourceType_Texture || resource->type == FrameGraphResourceType_Attachment ) {
-                Texture* texture = device->access_texture( resource->resource_info.texture.handle );
-                device->destroy_texture( texture->handle );
-            }
-            else if ( resource->type == FrameGraphResourceType_Buffer ) {
-                Buffer* buffer = device->access_buffer( resource->resource_info.buffer.handle );
-                device->destroy_buffer( buffer->handle );
-            }
+        if ( ( resource->type == FrameGraphResourceType_Texture || resource->type == FrameGraphResourceType_Attachment )
+             && ( resource->resource_info.texture.handle.index > 0 ) ) {
+            Texture* texture = device->access_texture( resource->resource_info.texture.handle );
+            device->destroy_texture( texture->handle );
+        } else if ( ( resource->type == FrameGraphResourceType_Buffer )
+                    && ( resource->resource_info.buffer.handle.index > 0 ) ) {
+            Buffer* buffer = device->access_buffer( resource->resource_info.buffer.handle );
+            device->destroy_buffer( buffer->handle );
         }
 
         resource_map.iterator_advance( it );

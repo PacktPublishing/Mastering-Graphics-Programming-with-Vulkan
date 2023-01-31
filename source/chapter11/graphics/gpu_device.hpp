@@ -246,6 +246,7 @@ struct GpuDevice : public Service {
     void                            destroy_render_pass_instant( ResourceHandle render_pass );
     void                            destroy_framebuffer_instant( ResourceHandle framebuffer );
     void                            destroy_shader_state_instant( ResourceHandle shader );
+    void                            destroy_page_pool_instant( ResourceHandle handle );
 
     void                            update_descriptor_set_instant( const DescriptorSetUpdate& update );
 
@@ -383,6 +384,7 @@ struct GpuDevice : public Service {
     PFN_vkGetRayTracingShaderGroupHandlesKHR vkGetRayTracingShaderGroupHandlesKHR;
     PFN_vkGetBufferDeviceAddressKHR vkGetBufferDeviceAddressKHR;
     PFN_vkCreateAccelerationStructureKHR vkCreateAccelerationStructureKHR;
+    PFN_vkDestroyAccelerationStructureKHR vkDestroyAccelerationStructureKHR;
     PFN_vkGetAccelerationStructureDeviceAddressKHR vkGetAccelerationStructureDeviceAddressKHR;
     PFN_vkGetAccelerationStructureBuildSizesKHR vkGetAccelerationStructureBuildSizesKHR;
     PFN_vkCmdBuildAccelerationStructuresKHR vkCmdBuildAccelerationStructuresKHR;

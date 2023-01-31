@@ -19,7 +19,7 @@
 #include "external/cglm/struct/quat.h"
 
 #include "external/stb_image.h"
-#include "external/tracy/Tracy.hpp"
+#include "external/tracy/tracy/Tracy.hpp"
 
 #include <assimp/cimport.h>
 #include <assimp/scene.h>
@@ -170,11 +170,6 @@ void DepthPrePass::prepare_draws( RenderScene& scene, FrameGraph* frame_graph, A
 
     const u64 hashed_name = hash_calculate( "main" );
     GpuTechnique* main_technique = renderer->resource_cache.techniques.get( hashed_name );
-
-    MaterialCreation material_creation;
-
-    material_creation.set_name( "material_depth_pre_pass" ).set_technique( main_technique ).set_render_index( 0 );
-    Material* material_depth_pre_pass = renderer->create_material( material_creation );
 
     mesh_instance_draws.init( resident_allocator, 16 );
 
@@ -435,7 +430,7 @@ void GBufferPass::render( u32 current_frame_index, CommandBuffer* gpu_commands, 
         gpu_commands->draw_indexed_indirect( render_scene->mesh_task_indirect_early_commands_sb[ current_frame_index ], 1, offsetof( GpuMeshDrawCommand, indirect ), sizeof( GpuMeshDrawCommand ) );
     }
     else if ( render_scene->use_meshlets ) {
-        
+
         gpu_commands->bind_pipeline( meshlet_draw_pipeline );
 
         gpu_commands->bind_descriptor_set( &render_scene->mesh_shader_early_descriptor_set[ current_frame_index ], 1, nullptr, 0 );
@@ -477,11 +472,6 @@ void GBufferPass::prepare_draws( RenderScene& scene, FrameGraph* frame_graph, Al
 
     const u64 hashed_name = hash_calculate( "main" );
     GpuTechnique* main_technique = renderer->resource_cache.techniques.get( hashed_name );
-
-    MaterialCreation material_creation;
-
-    material_creation.set_name( "material_no_cull" ).set_technique( main_technique ).set_render_index( 0 );
-    Material* material = renderer->create_material( material_creation );
 
     mesh_instance_draws.init( resident_allocator, 16 );
 
@@ -567,8 +557,12 @@ void GBufferPass::free_gpu_resources() {
     mesh_instance_draws.shutdown();
 
     for ( u32 i = 0; i < k_max_frames; ++i ) {
+
+        gpu.destroy_buffer( meshlet_instance_culling_indirect_buffer[ i ] );
+
         gpu.destroy_descriptor_set( generate_meshlet_index_buffer_descriptor_set[ i ] );
         gpu.destroy_descriptor_set( generate_meshlets_instances_descriptor_set[ i ] );
+        gpu.destroy_descriptor_set( meshlet_instance_culling_descriptor_set[ i ] );
     }
 }
 
@@ -589,11 +583,6 @@ void LateGBufferPass::prepare_draws( RenderScene& scene, FrameGraph* frame_graph
 
     const u64 hashed_name = hash_calculate( "main" );
     GpuTechnique* main_technique = renderer->resource_cache.techniques.get( hashed_name );
-
-    MaterialCreation material_creation;
-
-    material_creation.set_name( "material_no_cull" ).set_technique( main_technique ).set_render_index( 0 );
-    Material* material = renderer->create_material( material_creation );
 
     mesh_instance_draws.init( resident_allocator, 16 );
 
@@ -762,6 +751,8 @@ void LightPass::upload_gpu_data( RenderScene& scene ) {
 
         for ( u32 i = 0; i < k_max_frames; ++i ) {
 
+            scene.renderer->gpu->destroy_descriptor_set( lighting_descriptor_set[ i ] );
+
             ds_creation.reset().buffer( scene.scene_cb, 0 ).buffer( mesh.pbr_material.material_buffer, 1 ).buffer( scene.lights_lut_sb[ i ], 20 ).
                 buffer( scene.lights_list_sb, 21 ).buffer( scene.lights_tiles_sb[ i ], 22 ).buffer( scene.lights_indices_sb[ i ], 25 ).set_layout( layout );
 
@@ -769,6 +760,8 @@ void LightPass::upload_gpu_data( RenderScene& scene ) {
 
             // TODO(marco): this shouldn't be created here
             if ( scene.use_meshlets ) {
+                scene.renderer->gpu->destroy_descriptor_set( scene.mesh_shader_transparent_descriptor_set[ i ] );
+
                 GpuTechnique* transparent_technique = renderer->resource_cache.techniques.get( hash_calculate( "meshlet" ) );
                 u32 meshlet_technique_index = transparent_technique->get_pass_index( "transparent_no_cull" );
 
@@ -797,6 +790,10 @@ void LightPass::free_gpu_resources() {
 
     gpu.destroy_buffer( mesh.pbr_material.material_buffer );
     gpu.destroy_descriptor_set( mesh.pbr_material.descriptor_set );
+
+    for ( u32 i = 0; i < k_max_frames; ++i ) {
+        gpu.destroy_descriptor_set( lighting_descriptor_set[ i ] );
+    }
 }
 
 //
@@ -867,11 +864,6 @@ void TransparentPass::prepare_draws( RenderScene& scene, FrameGraph* frame_graph
 
     const u64 hashed_name = hash_calculate( "main" );
     GpuTechnique* main_technique = renderer->resource_cache.techniques.get( hashed_name );
-
-    MaterialCreation material_creation;
-
-    material_creation.set_name( "material_transparent" ).set_technique( main_technique ).set_render_index( 0 );
-    Material* material_depth_pre_pass = renderer->create_material( material_creation );
 
     mesh_instance_draws.init( resident_allocator, 16 );
 
@@ -1080,11 +1072,15 @@ void DebugPass::prepare_draws( RenderScene& scene, FrameGraph* frame_graph, Allo
     mesh_name.init( 1024, scratch_allocator );
     cstring filename = mesh_name.append_use_f( "%s/sphere.obj", RAPTOR_DATA_FOLDER );
 
+#if ( DEBUG_DRAW_MESHLET_SPHERES | DEBUG_DRAW_POINT_LIGHT_SPHERES)
     load_debug_mesh( filename, resident_allocator, renderer, sphere_index_count, &sphere_mesh_buffer, &sphere_mesh_indices );
+#endif // DEBUG_DRAW_MESHLET_SPHERES | DEBUG_DRAW_POINT_LIGHT_SPHERES
 
     filename = mesh_name.append_use_f( "%s/cone.obj", RAPTOR_DATA_FOLDER );
 
+#if DEBUG_DRAW_MESHLET_CONES
     load_debug_mesh( filename, resident_allocator, renderer, cone_index_count, &cone_mesh_buffer, &cone_mesh_indices );
+#endif // DEBUG_DRAW_MESHLET_CONES
 
     scratch_allocator->free_marker( marker );
 
@@ -1468,10 +1464,8 @@ void DoFPass::free_gpu_resources() {
 
     GpuDevice& gpu = *renderer->gpu;
 
-    {
-        renderer->destroy_texture( scene_mips );
-    }
-    gpu.destroy_buffer( mesh.pbr_material.material_buffer );
+    renderer->destroy_texture( scene_mips );
+
     gpu.destroy_descriptor_set( mesh.pbr_material.descriptor_set );
 }
 
@@ -2419,7 +2413,7 @@ void DrawTask::init( GpuDevice* gpu_, FrameGraph* frame_graph_, Renderer* render
 }
 
 void DrawTask::ExecuteRange( enki::TaskSetPartition range_, uint32_t threadnum_ ) {
-    ZoneScoped
+    ZoneScoped;
 
         using namespace raptor;
 

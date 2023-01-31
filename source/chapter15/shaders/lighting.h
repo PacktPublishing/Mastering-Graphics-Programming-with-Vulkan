@@ -25,7 +25,7 @@ struct Light {
     float           intensity;
 
     float           shadow_map_resolution;
-    float           padding_l_000;
+    float           rcp_n_minus_f; // Calculation of 1 / (n - f) used to retrieve cubemap shadows depth value.
     float           padding_l_001;
     float           padding_l_002;
 };
@@ -66,7 +66,7 @@ layout ( std140, set = MATERIAL_SET, binding = 23 ) uniform LightConstants {
 
     uint        bilateral_weights_texture_index;
     uint        reflections_texture_index;
-    uint        pad000_lc;
+    uint        brdf_lut_texture_index;
     uint        pad001_lc;
 };
 
@@ -147,21 +147,16 @@ float attenuation_square_falloff(vec3 position_to_light, float light_inverse_rad
     return (smoothFactor * smoothFactor) / max(distance_square, 1e-4);
 }
 
-float vector_to_depth_value( inout vec3 Vec, float radius) {
-    vec3 AbsVec = abs(Vec);
-    float LocalZcomp = max(AbsVec.x, max(AbsVec.y, AbsVec.z));
-
-    if (LocalZcomp == AbsVec.z) {
-        Vec.x *= -1;
-    }
-    else {
-        Vec.z *= -1;
-    }
+float vector_to_depth_value( vec3 direction, float radius, float rcp_n_minus_f ) {
+    const vec3 absolute_vec = abs(direction);
+    const float local_z_component = max(absolute_vec.x, max(absolute_vec.y, absolute_vec.z));
 
     const float f = radius;
     const float n = 0.01f;
-    float NormZComp = -(f / (n - f) - (n * f) / (n - f) / LocalZcomp);
-    return NormZComp;
+    // Original value, left for reference.
+    //const float normalized_z_component = -(f / (n - f) - (n * f) / (n - f) / local_z_component);
+    const float normalized_z_component = ( n * f * rcp_n_minus_f ) / local_z_component - f * rcp_n_minus_f;
+    return normalized_z_component;
 }
 
 // https://www.gamedev.net/articles/programming/graphics/contact-hardening-soft-shadows-made-fast-r4906/
@@ -310,7 +305,7 @@ vec3 calculate_point_light_contribution(vec4 albedo, float roughness, vec3 norma
     vec3 pixel_luminance = vec3(0);
 
     vec3 shadow_position_to_light = world_position - light.world_position;
-    const float current_depth = vector_to_depth_value(shadow_position_to_light, light.radius);
+    const float current_depth = vector_to_depth_value(shadow_position_to_light, light.radius, light.rcp_n_minus_f);
     const float bias = 0.0001f;
 
 #if RAYTRACED_SHADOWS
@@ -543,8 +538,10 @@ vec4 calculate_lighting(vec4 base_colour, vec3 orm, vec3 normal, vec3 emissive, 
     final_color.rgb += (kD * indirect_diffuse) * ao;
 
     vec3 reflection_color = texture( global_textures[reflections_texture_index], screen_uv ).rgb;
-    vec3 indirect_specular = roughness < 0.3 ? reflection_color : vec3(0);
-    final_color.rgb += (kS * indirect_specular) * ao;
+
+    vec2 envBRDF  = textureLod(global_textures[nonuniformEXT(brdf_lut_texture_index)], vec2(NoV, roughness), 0).rg;
+    vec3 indirect_specular = reflection_color * (F * envBRDF.x + envBRDF.y);
+    final_color.rgb += (indirect_specular) * ao;
 
 #if defined(DEBUG_OPTIONS)
 
@@ -567,63 +564,6 @@ vec4 calculate_lighting(vec4 base_colour, vec3 orm, vec3 normal, vec3 emissive, 
     if ( debug_show_bins > 0 ) {
         uint bin_hash = hash( bin_index );
         final_color.rgb = vec3(float(bin_hash & 255), float((bin_hash >> 8) & 255), float((bin_hash >> 16) & 255)) / 255.0;
-    }
-
-    {
-        Light light = lights[ 0 ];
-        vec3 position_to_light = world_position - light.world_position;
-
-        vec3 AbsVec = abs(position_to_light);
-        float LocalZcomp = max(AbsVec.x, max(AbsVec.y, AbsVec.z));
-        if (LocalZcomp == AbsVec.z) {
-            position_to_light.x *= -1;
-        }
-        else {
-            position_to_light.z *= -1;
-        }
-
-        const float current_depth = vector_to_depth_value(position_to_light, light.radius);
-        const float closest_depth = texture(global_textures_cubemaps[nonuniformEXT(cubemap_shadows_index)], vec3(position_to_light)).r;
-        const float bias = 0.0003f;
-        float shadow = current_depth - bias < closest_depth ? 1 : 0;
-
-        if (debug_modes == 1) {
-            final_color.rgb = shadow.xxx;
-        }
-        else if (debug_modes == 2) {
-            final_color.rgb = closest_depth.xxx;
-        }
-        else if (debug_modes == 3) {
-            final_color.rgb = current_depth.xxx;
-        }
-        else if (debug_modes == 4) {
-            final_color.rgb = vec3(closest_depth, current_depth, shadow);
-        }
-        else if (debug_modes == 5) {
-            vec4 light_view_position = world_to_camera * vec4( light.world_position.xyz, 1 );
-            vec4 pixel_view_position = world_to_camera * vec4( world_position.xyz, 1 );
-            position_to_light = light_view_position.xyz - pixel_view_position.xyz;
-            //position_to_light.x *= -1;
-            float current_depth = vector_to_depth_value(position_to_light, light.radius);
-            const float closest_depth = texture(global_textures_cubemaps[nonuniformEXT(cubemap_shadows_index)], vec3(position_to_light)).r;
-            shadow = current_depth + bias < closest_depth ? 1 : 0;
-            final_color.rgb = shadow.xxx;
-        }
-        else if (debug_modes == 6) {
-            vec4 light_view_position = world_to_camera * vec4( light.world_position.xyz, 1 );
-            vec4 pixel_view_position = world_to_camera * vec4( world_position.xyz, 1 );
-            position_to_light = pixel_view_position.xyz - light_view_position.xyz;
-            position_to_light.z *= -1;
-            float current_depth = vector_to_depth_value(position_to_light, light.radius);
-            const float closest_depth = texture(global_textures_cubemaps[nonuniformEXT(cubemap_shadows_index)], vec3(position_to_light)).r;
-            shadow = current_depth - bias > closest_depth ? 1 : 0;
-            final_color.rgb = shadow.xxx;
-        }
-        else if (debug_modes == 7) {
-            const float closest_depth = texture(global_textures_cubemaps[nonuniformEXT(cubemap_shadows_index)], vec3(world_position.xyz - light.world_position)).r;
-            final_color.rgb = current_depth < 0.145 ? vec3(1) : vec3(0);
-            final_color.rgb = vec3(abs(current_depth - closest_depth) / 4);
-        }
     }
 
 #endif // DEBUG_OPTIONS

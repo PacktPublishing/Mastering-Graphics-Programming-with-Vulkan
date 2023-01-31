@@ -2804,8 +2804,8 @@ static void vma_aligned_free(void* VMA_NULLABLE ptr)
    #define VMA_DEBUG_LOG(format, ...)
    /*
    #define VMA_DEBUG_LOG(format, ...) do { \
-       printf(format, __VA_ARGS__); \
-       printf("\n"); \
+       rprint(format, __VA_ARGS__); \
+       rprint("\n"); \
    } while(false)
    */
 #endif

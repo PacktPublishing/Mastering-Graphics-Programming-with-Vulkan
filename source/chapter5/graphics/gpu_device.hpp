@@ -117,6 +117,7 @@ struct GpuDevice : public Service {
 
     // Update/Reload resources ///////////////////////////////////////////
     void                            resize_output_textures( FramebufferHandle render_pass, u32 width, u32 height );
+    void                            resize_texture( TextureHandle texture, u32 width, u32 height );
 
     void                            update_descriptor_set( DescriptorSetHandle set );
 

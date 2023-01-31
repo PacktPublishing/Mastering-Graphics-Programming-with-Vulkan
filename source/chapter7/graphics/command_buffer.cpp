@@ -4,7 +4,7 @@
 
 #include "foundation/memory.hpp"
 
-#include "external/tracy/Tracy.hpp"
+#include "external/tracy/tracy/Tracy.hpp"
 
 #if defined(_MSC_VER)
 #define WIN32_LEAN_AND_MEAN
@@ -82,7 +82,7 @@ void CommandBuffer::shutdown() {
 }
 
 DescriptorSetHandle CommandBuffer::create_descriptor_set( const DescriptorSetCreation& creation ) {
-    ZoneScoped
+    ZoneScoped;
 
     DescriptorSetHandle handle = device->create_descriptor_set( creation );
 
@@ -529,7 +529,7 @@ static ResourceState to_resource_state( PipelineStage::Enum stage ) {
 void CommandBuffer::global_debug_barrier() {
 
     VkMemoryBarrier2KHR barrier{ VK_STRUCTURE_TYPE_MEMORY_BARRIER_2_KHR };
-  
+
     barrier.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT_KHR;
     barrier.srcAccessMask = VK_ACCESS_2_MEMORY_READ_BIT_KHR | VK_ACCESS_2_MEMORY_WRITE_BIT_KHR;
     barrier.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT_KHR;

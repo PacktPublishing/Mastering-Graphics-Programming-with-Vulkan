@@ -482,8 +482,16 @@ namespace PipelineStage {
 namespace ResourceUpdateType {
 
     enum Enum {
-        Buffer, Texture, Pipeline, Sampler, DescriptorSetLayout, DescriptorSet, RenderPass, Framebuffer, ShaderState, Count
+        Buffer, Texture, Pipeline, Sampler, DescriptorSetLayout, DescriptorSet, RenderPass, Framebuffer, ShaderState, TextureView, PagePool, Count
     };
+
+    static const char* s_value_names[] = {
+        "Buffer", "Texture", "Pipeline", "Sampler", "DescriptorSetLayout", "DescriptorSet", "RenderPass", "Framebuffer", "ShaderState", "TextureView", "PagePool"
+    };
+
+    static const char* ToString( Enum e ) {
+        return ( ( u32 )e < Enum::Count ? s_value_names[ ( int )e ] : "unsupported" );
+    }
 } // namespace ResourceUpdateType
 
 namespace PresentMode {

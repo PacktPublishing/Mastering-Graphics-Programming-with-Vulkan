@@ -3,7 +3,7 @@
 
 #include "foundation/memory.hpp"
 
-#include "external/tracy/Tracy.hpp"
+#include "external/tracy/tracy/Tracy.hpp"
 
 namespace raptor {
 
@@ -75,7 +75,7 @@ void CommandBuffer::shutdown() {
 }
 
 DescriptorSetHandle CommandBuffer::create_descriptor_set( const DescriptorSetCreation& creation ) {
-    ZoneScoped
+    ZoneScoped;
 
     DescriptorSetHandle handle = { descriptor_sets.obtain_resource() };
     if ( handle.index == k_invalid_index ) {

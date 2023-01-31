@@ -25,7 +25,7 @@
 
 #include "external/imgui/imgui.h"
 #include "external/stb_image.h"
-#include "external/tracy/Tracy.hpp"
+#include "external/tracy/tracy/Tracy.hpp"
 
 #include <assimp/cimport.h>        // Plain-C interface
 #include <assimp/scene.h>          // Output data structure
@@ -307,7 +307,7 @@ static void draw_mesh( raptor::Renderer& renderer, raptor::CommandBuffer* gpu_co
 //
 //
 static void draw_mesh( raptor::Renderer& renderer, raptor::CommandBuffer* gpu_commands, ObjDraw& mesh_draw ) {
-    ZoneScoped
+    ZoneScoped;
 
     gpu_commands->bind_vertex_buffer( mesh_draw.geometry_buffer_gpu, 0, mesh_draw.position_offset );
     gpu_commands->bind_vertex_buffer( mesh_draw.geometry_buffer_gpu, 1, mesh_draw.tangent_offset );
@@ -418,7 +418,7 @@ struct glTFDrawTask : public enki::ITaskSet {
     }
 
     void ExecuteRange( enki::TaskSetPartition range_, uint32_t threadnum_ ) override {
-        ZoneScoped
+        ZoneScoped;
 
         using namespace raptor;
 
@@ -1517,7 +1517,7 @@ void ObjScene::submit_draw_task( raptor::ImGuiService* imgui, raptor::GPUProfile
 }
 
 void ObjScene::prepare_draws( raptor::Renderer* renderer, raptor::StackAllocator* scratch_allocator ) {
-    ZoneScoped
+    ZoneScoped;
 
     using namespace raptor;
 
@@ -1669,7 +1669,7 @@ void AsynchronousLoader::shutdown() {
 }
 
 void AsynchronousLoader::update( raptor::Allocator* scratch_allocator ) {
-    ZoneScoped
+    ZoneScoped;
 
     using namespace raptor;
 
@@ -1979,7 +1979,7 @@ int main( int argc, char** argv ) {
     float light_intensity = 80.0f;
 
     while ( !window.requested_exit ) {
-        ZoneScopedN("RenderLoop")
+        ZoneScopedN("RenderLoop");
 
         // New frame
         if ( !window.minimized ) {
@@ -2013,7 +2013,7 @@ int main( int argc, char** argv ) {
         window.center_mouse( game_camera.mouse_dragging );
 
         {
-            ZoneScopedN("ImGui Recording")
+            ZoneScopedN("ImGui Recording");
 
             if ( ImGui::Begin( "Raptor ImGui" ) ) {
                 ImGui::InputFloat( "Model scale", &model_scale, 0.001f );
@@ -2030,7 +2030,7 @@ int main( int argc, char** argv ) {
 
             if ( ImGui::Begin( "GPU" ) ) {
                 renderer.imgui_draw();
-                
+
                 ImGui::Separator();
                 gpu_profiler.imgui_draw();
 
@@ -2041,7 +2041,7 @@ int main( int argc, char** argv ) {
         }
 
         {
-            ZoneScopedN("UniformBufferUpdate")
+            ZoneScopedN("UniformBufferUpdate");
             // Update common constant buffer
             MapBufferParameters cb_map = { scene_cb, 0, 0 };
             float* cb_data = ( float* )gpu.map_buffer( cb_map );

@@ -8,7 +8,7 @@
 				{
 					"stage" : "raygen",
 					"shader" : "reflections.glsl",
-					"includes" : ["platform.h", "scene.h", "mesh.h", "lighting.h", "debug_rendering.h"]
+					"includes" : ["platform.h", "scene.h", "mesh.h", "lighting.h", "debug_rendering.h", "ddgi.h"]
 				},
 				{
 					"stage" : "closest_hit",
@@ -47,6 +47,28 @@
 		{
 			"name": "svgf_wavelet",
 			"render_pass": "svgf_wavelet_pass",
+			"shaders" : [
+				{
+					"stage" : "compute",
+					"shader" : "reflections.glsl",
+					"includes" : ["platform.h", "scene.h"]
+				}
+			]
+		},
+		{
+			"name": "brdf_lut_generation",
+			"render_pass": "reflections_pass",
+			"shaders" : [
+				{
+					"stage" : "compute",
+					"shader" : "reflections.glsl",
+					"includes" : ["platform.h", "scene.h"]
+				}
+			]
+		},
+		{
+			"name": "svgf_downsample",
+			"render_pass": "reflections_pass",
 			"shaders" : [
 				{
 					"stage" : "compute",

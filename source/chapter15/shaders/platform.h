@@ -325,6 +325,25 @@ float interleaved_gradient_noise(vec2 pixel, int frame) {
     pixel += (float(frame) * 5.588238f);
     return fract(52.9829189f * fract(0.06711056f*float(pixel.x) + 0.00583715f*float(pixel.y)));
 }
+
+vec2 interleaved_gradient_noise2(vec2 pixel, int frame) {
+    float noise_x = interleaved_gradient_noise( pixel, frame );
+    float noise_y = interleaved_gradient_noise( pixel, frame + 1 );
+
+    return vec2( noise_x * 2 - 1, noise_y * 2 - 1 );
+}
+
+vec2 blue_noise2(vec2 pixel, int frame, uint blue_noise_texture_index) {
+    vec2 uv = vec2(pixel.xy / vec2(128.f));
+    // Read blue noise from texture
+    vec2 blue_noise = texture(global_textures[nonuniformEXT(blue_noise_texture_index)], uv ).rg;
+    const float k_golden_ratio_conjugate = 0.61803398875;
+    float blue_noise0 = fract(ToLinear1(blue_noise.r) + float(frame % 256) * k_golden_ratio_conjugate);
+    float blue_noise1 = fract(ToLinear1(blue_noise.g) + float(frame % 256) * k_golden_ratio_conjugate);
+
+    return vec2(blue_noise0, blue_noise1);
+}
+
 // Custom filtering
 
 // https://gist.github.com/Fewes/59d2c831672040452aa77da6eaab2234

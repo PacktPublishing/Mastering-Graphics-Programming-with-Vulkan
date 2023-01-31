@@ -16,7 +16,7 @@
 #include "external/cglm/struct/vec3.h"
 #include "external/cglm/struct/quat.h"
 
-#include "external/tracy/Tracy.hpp"
+#include "external/tracy/tracy/Tracy.hpp"
 #include "external/meshoptimizer/meshoptimizer.h"
 
 namespace raptor {

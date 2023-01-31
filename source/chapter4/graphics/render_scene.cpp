@@ -6,7 +6,7 @@
 
 #include "external/stb_image.h"
 
-#include "external/tracy/Tracy.hpp"
+#include "external/tracy/tracy/Tracy.hpp"
 
 namespace raptor {
 

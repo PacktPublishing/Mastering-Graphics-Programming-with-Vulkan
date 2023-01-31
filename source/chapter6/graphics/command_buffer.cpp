@@ -4,7 +4,7 @@
 
 #include "foundation/memory.hpp"
 
-#include "external/tracy/Tracy.hpp"
+#include "external/tracy/tracy/Tracy.hpp"
 
 #if defined(_MSC_VER)
 #define WIN32_LEAN_AND_MEAN
@@ -82,7 +82,7 @@ void CommandBuffer::shutdown() {
 }
 
 DescriptorSetHandle CommandBuffer::create_descriptor_set( const DescriptorSetCreation& creation ) {
-    ZoneScoped
+    ZoneScoped;
 
     DescriptorSetHandle handle = device->create_descriptor_set( creation );
 

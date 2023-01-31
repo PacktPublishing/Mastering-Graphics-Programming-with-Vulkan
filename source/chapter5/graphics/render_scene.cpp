@@ -17,7 +17,7 @@
 #include "external/cglm/struct/quat.h"
 
 #include "external/stb_image.h"
-#include "external/tracy/Tracy.hpp"
+#include "external/tracy/tracy/Tracy.hpp"
 
 #include <assimp/cimport.h>
 #include <assimp/scene.h>
@@ -1073,7 +1073,7 @@ void DrawTask::init( GpuDevice* gpu_, FrameGraph* frame_graph_, Renderer* render
 }
 
 void DrawTask::ExecuteRange( enki::TaskSetPartition range_, uint32_t threadnum_ ) {
-    ZoneScoped
+    ZoneScoped;
 
         using namespace raptor;
 

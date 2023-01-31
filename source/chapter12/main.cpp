@@ -35,7 +35,7 @@
 
 #include "external/imgui/imgui.h"
 #include "external/stb_image.h"
-#include "external/tracy/Tracy.hpp"
+#include "external/tracy/tracy/Tracy.hpp"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -969,7 +969,7 @@ int main( int argc, char** argv ) {
     }
 
     while ( !window.requested_exit ) {
-        ZoneScopedN("RenderLoop")
+        ZoneScopedN("RenderLoop");
 
         // New frame
         if ( !window.minimized ) {
@@ -1514,6 +1514,14 @@ int main( int argc, char** argv ) {
     vkDeviceWaitIdle( gpu.vulkan_device );
 
     async_loader.shutdown();
+
+    // Destroy resources built here.
+    gpu.destroy_buffer( scene->blas_buffer );
+    gpu.vkDestroyAccelerationStructureKHR( gpu.vulkan_device, scene->blas, gpu.vulkan_allocation_callbacks );
+    gpu.destroy_buffer( scene->tlas_buffer );
+    gpu.vkDestroyAccelerationStructureKHR( gpu.vulkan_device, scene->tlas, gpu.vulkan_allocation_callbacks );
+    gpu.destroy_sampler( repeat_nearest_sampler );
+    gpu.destroy_sampler( repeat_sampler );
 
     imgui->shutdown();
 

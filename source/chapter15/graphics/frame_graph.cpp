@@ -11,6 +11,7 @@
 
 #include "external/json.hpp"
 #include "external/imgui/imgui.h"
+#include "external/tracy/tracy/Tracy.hpp"
 
 #include <string>
 
@@ -179,10 +180,31 @@ void FrameGraph::parse( cstring file_path, StackAllocator* temp_allocator ) {
                     output_creation.resource_info.texture.load_op = string_to_render_pass_operation( load_op.c_str() );
 
                     json resolution = pass_output[ "resolution" ];
+                    json scaling = pass_output[ "resolution_scale" ];
 
-                    output_creation.resource_info.texture.width = resolution[0];
-                    output_creation.resource_info.texture.height = resolution[1];
-                    output_creation.resource_info.texture.depth = 1;
+                    if ( resolution.is_array() ) {
+                        output_creation.resource_info.texture.width = resolution[ 0 ];
+                        output_creation.resource_info.texture.height = resolution[ 1 ];
+                        output_creation.resource_info.texture.depth = 1;
+                        output_creation.resource_info.texture.scale_width = 0.f;
+                        output_creation.resource_info.texture.scale_height = 0.f;
+                    }
+                    else if ( scaling.is_array() ) {
+                        output_creation.resource_info.texture.width = 0;
+                        output_creation.resource_info.texture.height = 0;
+                        output_creation.resource_info.texture.depth = 1;
+                        output_creation.resource_info.texture.scale_width = scaling[ 0 ];
+                        output_creation.resource_info.texture.scale_height = scaling[ 1 ];
+                    }
+                    else {
+                        // Defaults
+                        output_creation.resource_info.texture.width = 0;
+                        output_creation.resource_info.texture.height = 0;
+                        output_creation.resource_info.texture.depth = 1;
+                        output_creation.resource_info.texture.scale_width = 1.f;
+                        output_creation.resource_info.texture.scale_height = 1.f;
+                    }
+                    
                     output_creation.resource_info.texture.compute = node_creation.compute;
 
                     // Parse depth/stencil values
@@ -288,6 +310,8 @@ static void create_framebuffer( FrameGraph* frame_graph, FrameGraphNode* node ) 
 
     u32 width = 0;
     u32 height = 0;
+    f32 scale_width = 0.f;
+    f32 scale_height = 0.f;
 
     for ( u32 r = 0; r < node->outputs.size; ++r ) {
         FrameGraphResource* resource = frame_graph->access_resource( node->outputs[ r ] );
@@ -300,12 +324,14 @@ static void create_framebuffer( FrameGraph* frame_graph, FrameGraphNode* node ) 
 
         if ( width == 0 ) {
             width = info.texture.width;
+            scale_width = info.texture.scale_width > 0.f ? info.texture.scale_width : 1.f;
         } else {
             RASSERT( width == info.texture.width );
         }
 
         if ( height == 0 ) {
             height = info.texture.height;
+            scale_height = info.texture.scale_height > 0.f ? info.texture.scale_height: 1.f;
         } else {
             RASSERT( height == info.texture.height );
         }
@@ -336,12 +362,14 @@ static void create_framebuffer( FrameGraph* frame_graph, FrameGraphNode* node ) 
 
         if ( width == 0 ) {
             width = info.texture.width;
+            scale_width = info.texture.scale_width > 0.f ? info.texture.scale_width : 1.f;
         } else if ( input_resource->type != FrameGraphResourceType_ShadingRate ) {
             RASSERT( width == info.texture.width );
         }
 
         if ( height == 0 ) {
             height = info.texture.height;
+            scale_height = info.texture.scale_height > 0.f ? info.texture.scale_height : 1.f;
         } else if ( input_resource->type != FrameGraphResourceType_ShadingRate ) {
             RASSERT( height == info.texture.height );
         }
@@ -363,9 +391,12 @@ static void create_framebuffer( FrameGraph* frame_graph, FrameGraphNode* node ) 
         }
     }
 
-    framebuffer_creation.width = width;
-    framebuffer_creation.height = height;
+    framebuffer_creation.set_width_height( width, height );
+    framebuffer_creation.set_scaling( scale_width, scale_height, 1 );
     node->framebuffer = frame_graph->builder->device->create_framebuffer( framebuffer_creation );
+
+    node->resolution_scale_width = scale_width;
+    node->resolution_scale_height = scale_height;
 }
 
 static void create_render_pass( FrameGraph* frame_graph, FrameGraphNode* node ) {
@@ -581,6 +612,12 @@ void FrameGraph::compile() {
                 if ( resource->type == FrameGraphResourceType_Attachment ) {
                     FrameGraphResourceInfo& info = resource->resource_info;
 
+                    // Resolve texture size if needed
+                    if ( info.texture.width == 0 || info.texture.height == 0 ) {
+                        info.texture.width = builder->device->swapchain_width * info.texture.scale_width;
+                        info.texture.height = builder->device->swapchain_height * info.texture.scale_height;
+                    }
+
                     TextureFlags::Mask texture_creation_flags = info.texture.compute ? ( TextureFlags::Mask )(TextureFlags::RenderTarget_mask | TextureFlags::Compute_mask) : TextureFlags::RenderTarget_mask;
 
                     bool found_suitable_free_resource = false;
@@ -593,6 +630,12 @@ void FrameGraph::compile() {
                                  alias_texture->height != info.texture.height ||
                                  alias_texture->vk_format != info.texture.format ) {
                                 continue;
+                            }
+
+                            // NOTE(marco): this texture has already been aliased, get original image
+                            if ( alias_texture->alias_texture.index != k_invalid_index ) {
+                                alias_texture_handle = alias_texture->alias_texture;
+                                alias_texture = builder->device->access_texture( alias_texture_handle );
                             }
 
                             TextureCreation texture_creation{ };
@@ -679,6 +722,8 @@ void FrameGraph::add_ui() {
 void FrameGraph::render( u32 current_frame_index, CommandBuffer* gpu_commands, RenderScene* render_scene )
 {
     for ( u32 n = 0; n < nodes.size; ++n ) {
+        ZoneScopedN("RenderPass");
+
         FrameGraphNode* node = builder->access_node( nodes[ n ] );
         RASSERT( node->enabled );
 
@@ -827,6 +872,16 @@ void FrameGraph::on_resize( GpuDevice& gpu, u32 new_width, u32 new_height ) {
     }
 }
 
+void FrameGraph::reload_shaders( RenderScene& scene, Allocator* resident_allocator, StackAllocator* scratch_allocator ) {
+
+    for ( u32 n = 0; n < nodes.size; ++n ) {
+        FrameGraphNode* node = builder->access_node( nodes[ n ] );
+        RASSERT( node->enabled );
+
+        node->graph_render_pass->reload_shaders( scene, this, resident_allocator, scratch_allocator );
+    }
+}
+
 void FrameGraph::debug_ui() {
 
     if ( ImGui::CollapsingHeader( "Nodes" ) ) {
@@ -839,14 +894,14 @@ void FrameGraph::debug_ui() {
             ImGui::Text( "\tInputs" );
             for ( u32 i = 0; i < node->inputs.size; ++i ) {
                 FrameGraphResource* resource = builder->access_resource( node->inputs[ i ] );
-                ImGui::Text( "\t\t%s", resource->name );
+                ImGui::Text( "\t\t%s %u %u", resource->name, resource->resource_info.texture.handle.index, resource->resource_info.buffer.handle.index  );
             }
 
 
             ImGui::Text( "\tOutputs" );
             for ( u32 o = 0; o < node->outputs.size; ++o ) {
                 FrameGraphResource* resource = builder->access_resource( node->outputs[ o ] );
-                ImGui::Text( "\t\t%s", resource->name );
+                ImGui::Text( "\t\t%s %u %u", resource->name, resource->resource_info.texture.handle.index, resource->resource_info.buffer.handle.index );
             }
         }
     }
@@ -907,15 +962,14 @@ void FrameGraphResourceCache::shutdown( )
         u32 resource_index = resource_map.get( it );
         FrameGraphResource* resource = resources.get( resource_index );
 
-        {
-            if ( resource->type == FrameGraphResourceType_Texture || resource->type == FrameGraphResourceType_Attachment ) {
-                Texture* texture = device->access_texture( resource->resource_info.texture.handle );
-                device->destroy_texture( texture->handle );
-            }
-            else if ( resource->type == FrameGraphResourceType_Buffer ) {
-                Buffer* buffer = device->access_buffer( resource->resource_info.buffer.handle );
-                device->destroy_buffer( buffer->handle );
-            }
+        if ( ( resource->type == FrameGraphResourceType_Texture || resource->type == FrameGraphResourceType_Attachment )
+             && ( resource->resource_info.texture.handle.index > 0 && resource->resource_info.texture.handle.index != k_invalid_index ) ) {
+            Texture* texture = device->access_texture( resource->resource_info.texture.handle );
+            device->destroy_texture( texture->handle );
+        } else if ( ( resource->type == FrameGraphResourceType_Buffer )
+                    && ( resource->resource_info.buffer.handle.index > 0 && resource->resource_info.buffer.handle.index != k_invalid_index ) ) {
+            Buffer* buffer = device->access_buffer( resource->resource_info.buffer.handle );
+            device->destroy_buffer( buffer->handle );
         }
 
         resource_map.iterator_advance( it );

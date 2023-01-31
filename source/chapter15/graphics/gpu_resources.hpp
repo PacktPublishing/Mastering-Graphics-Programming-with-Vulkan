@@ -844,6 +844,7 @@ struct Texture {
 
     TextureHandle                   handle;
     TextureHandle                   parent_texture;     // Used when a texture view.
+    TextureHandle                   alias_texture;
     TextureType::Enum               type    = TextureType::Texture2D;
 
     Sampler*                        sampler = nullptr;

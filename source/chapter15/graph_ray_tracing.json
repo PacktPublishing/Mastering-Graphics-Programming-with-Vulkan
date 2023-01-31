@@ -112,7 +112,15 @@
                 },
                 {
                     "type": "attachment",
-                    "name": "depth_normal_dd",
+                    "name": "depth_normal_fwidth",
+                    "format": "VK_FORMAT_R16G16_SFLOAT",
+                    "resolution": [ 1280, 800 ],
+                    "load_operation": "clear",
+                    "clear_color":[0.0, 0.0, 0.0, 0.0]
+                },
+                {
+                    "type": "attachment",
+                    "name": "linear_z_dd",
                     "format": "VK_FORMAT_R16G16_SFLOAT",
                     "resolution": [ 1280, 800 ],
                     "load_operation": "clear",
@@ -162,7 +170,11 @@
                 },
                 {
                     "type": "attachment",
-                    "name": "depth_normal_dd"
+                    "name": "depth_normal_fwidth"
+                },
+                {
+                    "type": "attachment",
+                    "name": "linear_z_dd"
                 },
                 {
                     "type": "attachment",
@@ -197,7 +209,7 @@
                 },
                 {
                     "type": "reference",
-                    "name": "depth_normal_dd"
+                    "name": "linear_z_dd"
                 }
             ],
             "name": "gbuffer_pass_late"
@@ -549,11 +561,15 @@
                 },
                 {
                     "type": "texture",
+                    "name": "mesh_id"
+                },
+                {
+                    "type": "texture",
                     "name": "reflections"
                 },
                 {
                     "type": "texture",
-                    "name": "depth"
+                    "name": "linear_z_dd"
                 },
                 {
                     "type": "texture",
@@ -614,6 +630,18 @@
                 {
                     "type": "texture",
                     "name": "integrated_moments"
+                },
+                {
+                    "type": "texture",
+                    "name": "gbuffer_normals"
+                },
+                {
+                    "type": "texture",
+                    "name": "mesh_id"
+                },
+                {
+                    "type": "texture",
+                    "name": "linear_z_dd"
                 }
             ],
             "type": "compute",
@@ -624,7 +652,7 @@
                     "type": "attachment",
                     "name": "svgf_variance",
                     "format": "VK_FORMAT_R32_SFLOAT",
-                    "resolution": [ 1280, 800 ],
+                    "resolution_scale": [ 1.0, 1.0 ],
                     "load_operation": "clear",
                     "clear_color":[0.0, 0.0, 0.0, 0.0]
                 }

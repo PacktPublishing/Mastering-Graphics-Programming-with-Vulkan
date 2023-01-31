@@ -554,7 +554,7 @@ namespace raptor {
         f32                     intensity;
 
         f32                     shadow_map_resolution;
-        f32                     pad0;
+        f32                     rcp_n_minus_f;          // Calculation of 1 / (n - f) used to retrieve cubemap shadows depth value.
         f32                     pad1;
         f32                     pad2;
 
@@ -1085,6 +1085,7 @@ namespace raptor {
         void                    prepare_draws( RenderScene& scene, FrameGraph* frame_graph, Allocator* resident_allocator, StackAllocator* scratch_allocator ) override;
         void                    upload_gpu_data( RenderScene& scene ) override;
         void                    free_gpu_resources( GpuDevice& gpu ) override;
+        void                    update_dependent_resources( GpuDevice& gpu, FrameGraph* frame_graph, RenderScene* render_scene );
 
         void                    recreate_textures( GpuDevice& gpu, u32 lights_count );
 

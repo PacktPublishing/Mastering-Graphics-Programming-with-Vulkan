@@ -72,6 +72,7 @@ static void                 check_result( VkResult result );
 #define VULKAN_DEBUG_REPORT
 
 //#define VULKAN_SYNCHRONIZATION_VALIDATION
+//#define RAPTOR_GPU_DEVICE_RESOURCE_TRACKING
 
 static const char* s_requested_extensions[] = {
     VK_KHR_SURFACE_EXTENSION_NAME,
@@ -808,10 +809,6 @@ void GpuDevice::shutdown() {
     MapBufferParameters cb_map = { dynamic_buffer, 0, 0 };
     unmap_buffer( cb_map );
 
-    // Memory: this contains allocations for gpu timestamp memory, queued command buffers and render frames.
-    rfree( gpu_time_queries_manager, allocator );
-    thread_frame_pools.shutdown();
-
     destroy_descriptor_set_layout( bindless_descriptor_set_layout );
     destroy_descriptor_set( bindless_descriptor_set );
     destroy_buffer( fullscreen_vertex_buffer );
@@ -944,13 +941,18 @@ void GpuDevice::shutdown() {
     }
 
     vkDestroyDescriptorPool( vulkan_device, vulkan_descriptor_pool, vulkan_allocation_callbacks );
-
+    
+    // Destroy all query and command pools
     for ( u32 i = 0; i < thread_frame_pools.size; ++i ) {
         GpuThreadFramePools& pool = thread_frame_pools[ i ];
         vkDestroyQueryPool( vulkan_device, pool.vulkan_timestamp_query_pool, vulkan_allocation_callbacks );
         vkDestroyQueryPool( vulkan_device, pool.vulkan_pipeline_stats_query_pool, vulkan_allocation_callbacks );
         vkDestroyCommandPool( vulkan_device, pool.vulkan_command_pool, vulkan_allocation_callbacks );
     }
+
+    // Memory: this contains allocations for gpu timestamp memory, queued command buffers and render frames.
+    rfree( gpu_time_queries_manager, allocator );
+    thread_frame_pools.shutdown();
 
     // Put this here so that pools catch which kind of resource has leaked.
     vmaDestroyAllocator( vma_allocator );
@@ -1201,6 +1203,10 @@ TextureHandle GpuDevice::create_texture( const TextureCreation& creation ) {
         return handle;
     }
 
+#if defined (RAPTOR_GPU_DEVICE_RESOURCE_TRACKING)
+    rprint( "Creating texture %u - %s\n", handle.index, creation.name );
+#endif // RAPTOR_GPU_DEVICE_RESOURCE_TRACKING
+
     Texture* texture = access_texture( handle );
 
     vulkan_create_texture( *this, creation, handle, texture );
@@ -1234,6 +1240,41 @@ TextureHandle GpuDevice::create_texture_view( const TextureViewCreation& creatio
     vulkan_create_texture_view( *this, creation, texture_view );
 
     return handle;
+}
+
+// helper method
+bool is_end_of_line( char c ) {
+    bool result = ( ( c == '\n' ) || ( c == '\r' ) );
+    return( result );
+}
+
+void dump_shader_code( StringBuffer& temp_string_buffer, cstring code, VkShaderStageFlagBits stage, cstring name ) {
+    rprint( "Error in creation of shader %s, stage %s. Writing shader:\n", name, to_stage_defines( stage ) );
+
+    cstring current_code = code;
+    u32 line_index = 1;
+    while ( current_code ) {
+
+        cstring end_of_line = current_code;
+        if ( !end_of_line || *end_of_line == 0 ) {
+            break;
+        }
+        while ( !is_end_of_line( *end_of_line ) ) {
+            ++end_of_line;
+        }
+        if ( *end_of_line == '\r' ) {
+            ++end_of_line;
+        }
+        if ( *end_of_line == '\n' ) {
+            ++end_of_line;
+        }
+
+        temp_string_buffer.clear();
+        char* line = temp_string_buffer.append_use_substring( current_code, 0, ( end_of_line - current_code ) );
+        rprint( "%u: %s", line_index++, line );
+
+        current_code = end_of_line;
+    }
 }
 
 VkShaderModuleCreateInfo GpuDevice::compile_shader( cstring code, u32 code_size, VkShaderStageFlagBits stage, cstring name ) {
@@ -1292,17 +1333,16 @@ VkShaderModuleCreateInfo GpuDevice::compile_shader( cstring code, u32 code_size,
         shader_create_info.pCode = reinterpret_cast< const u32* >( file_read_binary( final_spirv_filename, temporary_allocator, &shader_create_info.codeSize ) );
     }
 
+    // Handling compilation error
+    if ( shader_create_info.pCode == nullptr ) {
+        dump_shader_code( temp_string_buffer, code, stage, name );
+    }
+
     // Temporary files cleanup
     file_delete( temp_filename );
     file_delete( final_spirv_filename );
 
     return shader_create_info;
-}
-
-// helper method
-bool is_end_of_line( char c ) {
-    bool result = ( ( c == '\n' ) || ( c == '\r' ) );
-    return( result );
 }
 
 ShaderStateHandle GpuDevice::create_shader_state( const ShaderStateCreation& creation ) {
@@ -1385,34 +1425,9 @@ ShaderStateHandle GpuDevice::create_shader_state( const ShaderStateCreation& cre
         destroy_shader_state( handle );
         handle.index = k_invalid_index;
 
-        const ShaderStage& stage = creation.stages[ broken_stage ];
-
-        // Dump shader code
-        rprint( "Error in creation of shader %s, stage %s. Writing shader:\n", creation.name, to_stage_defines( stage.type ) );
-
-        cstring current_code = stage.code;
-        u32 line_index = 1;
-        while ( current_code ) {
-
-            cstring end_of_line = current_code;
-            if ( !end_of_line || *end_of_line == 0 ) {
-                break;
-            }
-            while ( !is_end_of_line(*end_of_line) ) {
-                ++end_of_line;
-            }
-            if ( *end_of_line == '\r' ) {
-                ++end_of_line;
-            }
-            if ( *end_of_line == '\n' ) {
-                ++end_of_line;
-            }
-
-            name_buffer.clear();
-            char* line = name_buffer.append_use_substring( current_code, 0, ( end_of_line - current_code ) );
-            rprint( "%u: %s", line_index++, line );
-
-            current_code = end_of_line;
+        if ( !creation.spv_input ) {
+            const ShaderStage& stage = creation.stages[ broken_stage ];
+            dump_shader_code( name_buffer, stage.code, stage.type, creation.name );
         }
     }
 
@@ -1424,6 +1439,10 @@ PipelineHandle GpuDevice::create_pipeline( const PipelineCreation& creation, con
     if ( handle.index == k_invalid_index ) {
         return handle;
     }
+
+#if defined (RAPTOR_GPU_DEVICE_RESOURCE_TRACKING)
+    rprint( "Creating pipeline %u - %s\n", handle.index, creation.name );
+#endif // RAPTOR_GPU_DEVICE_RESOURCE_TRACKING
 
     VkPipelineCache pipeline_cache = VK_NULL_HANDLE;
     VkPipelineCacheCreateInfo pipeline_cache_create_info { VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO };
@@ -1728,6 +1747,10 @@ BufferHandle GpuDevice::create_buffer( const BufferCreation& creation ) {
         return handle;
     }
 
+#if defined (RAPTOR_GPU_DEVICE_RESOURCE_TRACKING)
+    rprint( "Creating buffer %u - %s\n", handle.index, creation.name );
+#endif // RAPTOR_GPU_DEVICE_RESOURCE_TRACKING
+
     Buffer* buffer = access_buffer( handle );
 
     buffer->name = creation.name;
@@ -1800,6 +1823,10 @@ SamplerHandle GpuDevice::create_sampler( const SamplerCreation& creation ) {
         return handle;
     }
 
+#if defined (RAPTOR_GPU_DEVICE_RESOURCE_TRACKING)
+    rprint( "Creating sampler %u - %s\n", handle.index, creation.name );
+#endif // RAPTOR_GPU_DEVICE_RESOURCE_TRACKING
+
     Sampler* sampler = access_sampler( handle );
 
     sampler->address_mode_u = creation.address_mode_u;
@@ -1852,6 +1879,10 @@ DescriptorSetLayoutHandle GpuDevice::create_descriptor_set_layout( const Descrip
     if ( handle.index == k_invalid_index ) {
         return handle;
     }
+
+#if defined (RAPTOR_GPU_DEVICE_RESOURCE_TRACKING)
+    rprint( "Creating descriptor set layout %u - %s\n", handle.index, creation.name );
+#endif // RAPTOR_GPU_DEVICE_RESOURCE_TRACKING
 
     DescriptorSetLayout* descriptor_set_layout = access_descriptor_set_layout( handle );
 
@@ -2092,6 +2123,10 @@ DescriptorSetHandle GpuDevice::create_descriptor_set( const DescriptorSetCreatio
     if ( handle.index == k_invalid_index ) {
         return handle;
     }
+
+#if defined (RAPTOR_GPU_DEVICE_RESOURCE_TRACKING)
+    rprint( "Creating descriptor set %u - %s\n", handle.index, creation.name );
+#endif // RAPTOR_GPU_DEVICE_RESOURCE_TRACKING
 
     DescriptorSet* descriptor_set = access_descriptor_set( handle );
     const DescriptorSetLayout* descriptor_set_layout = access_descriptor_set_layout( creation.layout );
@@ -2335,6 +2370,10 @@ RenderPassHandle GpuDevice::create_render_pass( const RenderPassCreation& creati
         return handle;
     }
 
+#if defined (RAPTOR_GPU_DEVICE_RESOURCE_TRACKING)
+    rprint( "Creating render pass %u - %s\n", handle.index, creation.name );
+#endif // RAPTOR_GPU_DEVICE_RESOURCE_TRACKING
+
     RenderPass* render_pass = access_render_pass( handle );
     // Init the rest of the struct.
     render_pass->num_render_targets = ( u8 )creation.num_render_targets;
@@ -2365,6 +2404,10 @@ FramebufferHandle GpuDevice::create_framebuffer( const FramebufferCreation& crea
         return handle;
     }
 
+#if defined (RAPTOR_GPU_DEVICE_RESOURCE_TRACKING)
+    rprint( "Creating framebuffer %u - %s\n", handle.index, creation.name );
+#endif // RAPTOR_GPU_DEVICE_RESOURCE_TRACKING
+
     Framebuffer* framebuffer = access_framebuffer( handle );
     // Init the rest of the struct.
     framebuffer->num_color_attachments = creation.num_render_targets;
@@ -2392,6 +2435,11 @@ FramebufferHandle GpuDevice::create_framebuffer( const FramebufferCreation& crea
 
 void GpuDevice::destroy_buffer( BufferHandle buffer ) {
     if ( buffer.index < buffers.pool_size ) {
+
+#if defined (RAPTOR_GPU_DEVICE_RESOURCE_TRACKING)
+        rprint( "Destroying buffer %u\n", buffer.index );
+#endif // RAPTOR_GPU_DEVICE_RESOURCE_TRACKING
+
         resource_deletion_queue.push( { ResourceUpdateType::Buffer, buffer.index, current_frame + k_max_frames, 1 } );
     } else {
         rprint( "Graphics error: trying to free invalid Buffer %u\n", buffer.index );
@@ -2400,6 +2448,11 @@ void GpuDevice::destroy_buffer( BufferHandle buffer ) {
 
 void GpuDevice::destroy_texture( TextureHandle texture ) {
     if ( texture.index < textures.pool_size ) {
+
+#if defined (RAPTOR_GPU_DEVICE_RESOURCE_TRACKING)
+        rprint( "Destroying texture %u\n", texture.index );
+#endif // RAPTOR_GPU_DEVICE_RESOURCE_TRACKING
+
         // Do not add textures to deletion queue, textures will be deleted after bindless descriptor is updated.
         texture_to_update_bindless.push( { ResourceUpdateType::Texture, texture.index, current_frame, 1 } );
     } else {
@@ -2409,13 +2462,20 @@ void GpuDevice::destroy_texture( TextureHandle texture ) {
 
 void GpuDevice::destroy_pipeline( PipelineHandle pipeline ) {
     if ( pipeline.index < pipelines.pool_size ) {
+
+#if defined (RAPTOR_GPU_DEVICE_RESOURCE_TRACKING)
+        rprint( "Destroying pipeline %u\n", pipeline.index );
+#endif // RAPTOR_GPU_DEVICE_RESOURCE_TRACKING
+
         resource_deletion_queue.push( { ResourceUpdateType::Pipeline, pipeline.index, current_frame, 1 } );
         // Shader state creation is handled internally when creating a pipeline, thus add this to track correctly.
         Pipeline* v_pipeline = access_pipeline( pipeline );
 
         ShaderState* shader_state_data = access_shader_state( v_pipeline->shader_state );
         for ( u32 l = 0; l < shader_state_data->parse_result->set_count; ++l ) {
-            destroy_descriptor_set_layout( v_pipeline->descriptor_set_layout_handles[ l ] );
+            if ( v_pipeline->descriptor_set_layout_handles[ l ].index != k_invalid_index ) {
+                destroy_descriptor_set_layout( v_pipeline->descriptor_set_layout_handles[ l ] );
+            }
         }
 
         destroy_shader_state( v_pipeline->shader_state );
@@ -2426,6 +2486,11 @@ void GpuDevice::destroy_pipeline( PipelineHandle pipeline ) {
 
 void GpuDevice::destroy_sampler( SamplerHandle sampler ) {
     if ( sampler.index < samplers.pool_size ) {
+
+#if defined (RAPTOR_GPU_DEVICE_RESOURCE_TRACKING)
+        rprint( "Destroying sampler %u\n", sampler.index );
+#endif // RAPTOR_GPU_DEVICE_RESOURCE_TRACKING
+
         resource_deletion_queue.push( { ResourceUpdateType::Sampler, sampler.index, current_frame, 1 } );
     } else {
         rprint( "Graphics error: trying to free invalid Sampler %u\n", sampler.index );
@@ -2434,6 +2499,11 @@ void GpuDevice::destroy_sampler( SamplerHandle sampler ) {
 
 void GpuDevice::destroy_descriptor_set_layout( DescriptorSetLayoutHandle descriptor_set_layout ) {
     if ( descriptor_set_layout.index < descriptor_set_layouts.pool_size ) {
+
+#if defined (RAPTOR_GPU_DEVICE_RESOURCE_TRACKING)
+        rprint( "Destroying descriptor set layout %u\n", descriptor_set_layout.index );
+#endif // RAPTOR_GPU_DEVICE_RESOURCE_TRACKING
+
         resource_deletion_queue.push( { ResourceUpdateType::DescriptorSetLayout, descriptor_set_layout.index, current_frame, 1 } );
     } else {
         rprint( "Graphics error: trying to free invalid DescriptorSetLayout %u\n", descriptor_set_layout.index );
@@ -2442,6 +2512,11 @@ void GpuDevice::destroy_descriptor_set_layout( DescriptorSetLayoutHandle descrip
 
 void GpuDevice::destroy_descriptor_set( DescriptorSetHandle descriptor_set ) {
     if ( descriptor_set.index < descriptor_sets.pool_size ) {
+
+#if defined (RAPTOR_GPU_DEVICE_RESOURCE_TRACKING)
+        rprint( "Destroying descriptor set %u\n", descriptor_set.index );
+#endif // RAPTOR_GPU_DEVICE_RESOURCE_TRACKING
+
         resource_deletion_queue.push( { ResourceUpdateType::DescriptorSet, descriptor_set.index, current_frame, 1 } );
     } else {
         rprint( "Graphics error: trying to free invalid DescriptorSet %u\n", descriptor_set.index );
@@ -2450,6 +2525,11 @@ void GpuDevice::destroy_descriptor_set( DescriptorSetHandle descriptor_set ) {
 
 void GpuDevice::destroy_render_pass( RenderPassHandle render_pass ) {
     if ( render_pass.index < render_passes.pool_size ) {
+
+#if defined (RAPTOR_GPU_DEVICE_RESOURCE_TRACKING)
+        rprint( "Destroying render pass %u\n", render_pass.index );
+#endif // RAPTOR_GPU_DEVICE_RESOURCE_TRACKING
+
         resource_deletion_queue.push( { ResourceUpdateType::RenderPass, render_pass.index, current_frame, 1 } );
     } else {
         rprint( "Graphics error: trying to free invalid RenderPass %u\n", render_pass.index );
@@ -2458,6 +2538,11 @@ void GpuDevice::destroy_render_pass( RenderPassHandle render_pass ) {
 
 void GpuDevice::destroy_framebuffer( FramebufferHandle framebuffer ) {
     if ( framebuffer.index < framebuffers.pool_size ) {
+
+#if defined (RAPTOR_GPU_DEVICE_RESOURCE_TRACKING)
+        rprint( "Destroying framebuffer %u\n", framebuffer.index );
+#endif // RAPTOR_GPU_DEVICE_RESOURCE_TRACKING
+
         resource_deletion_queue.push( { ResourceUpdateType::Framebuffer, framebuffer.index, current_frame, 1 } );
     } else {
         rprint( "Graphics error: trying to free invalid Framebuffer %u\n", framebuffer.index );
@@ -2491,17 +2576,21 @@ void GpuDevice::destroy_texture_instant( ResourceHandle texture ) {
     Texture* v_texture = ( Texture* )textures.access_resource( texture );
 
     // Skip double frees
-    if ( v_texture->vk_format == VK_FORMAT_UNDEFINED ) {
+    if ( !v_texture->vk_image_view ) {
         return;
     }
 
     if ( v_texture ) {
         // Default texture view added as separate destroy command.
         vkDestroyImageView( vulkan_device, v_texture->vk_image_view, vulkan_allocation_callbacks );
+        v_texture->vk_image_view = VK_NULL_HANDLE;
+
         if ( v_texture->vma_allocation != 0 && v_texture->parent_texture.index == k_invalid_texture.index ) {
             vmaDestroyImage( vma_allocator, v_texture->vk_image, v_texture->vma_allocation );
+        } else if ( v_texture->vma_allocation == nullptr ) {
+            // Aliased textures
+            vkDestroyImage( vulkan_device, v_texture->vk_image, vulkan_allocation_callbacks );
         }
-        v_texture->vk_format = VK_FORMAT_UNDEFINED;
     }
     textures.release_resource( texture );
 }
@@ -2809,22 +2898,6 @@ VkRenderPass GpuDevice::get_vulkan_render_pass( const RenderPassOutput& output, 
     return vulkan_render_pass;
 }
 
-//
-//
-static void vulkan_resize_texture( GpuDevice& gpu, Texture* v_texture, Texture* v_texture_to_delete, u16 width, u16 height, u16 depth ) {
-
-    // Cache handles to be delayed destroyed
-    v_texture_to_delete->vk_image_view = v_texture->vk_image_view;
-    v_texture_to_delete->vk_image = v_texture->vk_image;
-    v_texture_to_delete->vma_allocation = v_texture->vma_allocation;
-    v_texture_to_delete->flags = v_texture->flags;
-
-    // Re-create image in place.
-    TextureCreation tc;
-    tc.set_flags( v_texture->flags ).set_format_type( v_texture->vk_format, v_texture->type ).set_name( v_texture->name ).set_size( width, height, depth ).set_mips( v_texture->mip_level_count );
-    vulkan_create_texture( gpu, tc, v_texture->handle, v_texture );
-}
-
 void GpuDevice::resize_swapchain() {
 
     vkDeviceWaitIdle( vulkan_device );
@@ -2934,36 +3007,11 @@ void GpuDevice::resize_output_textures( FramebufferHandle framebuffer, u32 width
         // Resize textures if needed
         const u32 rts = vk_framebuffer->num_color_attachments;
         for ( u32 i = 0; i < rts; ++i ) {
-            TextureHandle texture = vk_framebuffer->color_attachments[ i ];
-            Texture* vk_texture = access_texture( texture );
-
-            if ( vk_texture->width == new_width && vk_texture->height == new_height ) {
-                continue;
-            }
-
-            // Queue deletion of texture by creating a temporary one
-            TextureHandle texture_to_delete = { textures.obtain_resource() };
-            Texture* vk_texture_to_delete = access_texture( texture_to_delete );
-            // Update handle so it can be used to update bindless to dummy texture.
-            vk_texture_to_delete->handle = texture_to_delete;
-            vulkan_resize_texture( *this, vk_texture, vk_texture_to_delete, new_width, new_height, 1 );
-
-            destroy_texture( texture_to_delete );
+            resize_texture( vk_framebuffer->color_attachments[ i ], new_width, new_height );
         }
 
         if ( vk_framebuffer->depth_stencil_attachment.index != k_invalid_index ) {
-            Texture* vk_texture = access_texture( vk_framebuffer->depth_stencil_attachment );
-
-            if ( vk_texture->width != new_width || vk_texture->height != new_height ) {
-                // Queue deletion of texture by creating a temporary one
-                TextureHandle texture_to_delete = { textures.obtain_resource() };
-                Texture* vk_texture_to_delete = access_texture( texture_to_delete );
-                // Update handle so it can be used to update bindless to dummy texture.
-                vk_texture_to_delete->handle = texture_to_delete;
-                vulkan_resize_texture( *this, vk_texture, vk_texture_to_delete, new_width, new_height, 1 );
-
-                destroy_texture( texture_to_delete );
-            }
+            resize_texture( vk_framebuffer->depth_stencil_attachment, new_width, new_height );
         }
 
         // Again: create temporary resource to use the standard deferred deletion mechanism.
@@ -2999,9 +3047,21 @@ void GpuDevice::resize_texture( TextureHandle texture, u32 width, u32 height ) {
     // Queue deletion of texture by creating a temporary one
     TextureHandle texture_to_delete = { textures.obtain_resource() };
     Texture* vk_texture_to_delete = access_texture( texture_to_delete );
-    // Update handle so it can be used to update bindless to dummy texture.
+
+    // Cache all informations (image, image view, flags, ...) into texture to delete.
+    // Missing even one information (like it is a texture view, sparse, ...)
+    // can lead to memory leaks.
+    memory_copy( vk_texture_to_delete, vk_texture, sizeof( Texture ) );
+    // Update handle so it can be used to update bindless to dummy texture
+    // and delete the old image and image view.
     vk_texture_to_delete->handle = texture_to_delete;
-    vulkan_resize_texture( *this, vk_texture, vk_texture_to_delete, width, height, 1 );
+
+    // Re-create image in place.
+    TextureCreation tc;
+    tc.set_flags( vk_texture->flags ).set_format_type( vk_texture->vk_format, vk_texture->type )
+        .set_name( vk_texture->name ).set_size( width, height, vk_texture->depth )
+        .set_mips( vk_texture->mip_level_count );
+    vulkan_create_texture( *this, tc, vk_texture->handle, vk_texture );
 
     destroy_texture( texture_to_delete );
 }

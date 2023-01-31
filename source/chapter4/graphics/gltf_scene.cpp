@@ -15,7 +15,7 @@
 #include "external/cglm/struct/vec3.h"
 #include "external/cglm/struct/quat.h"
 
-#include "external/tracy/Tracy.hpp"
+#include "external/tracy/tracy/Tracy.hpp"
 
 
 namespace raptor {
@@ -1059,7 +1059,7 @@ void glTFDrawTask::init( GpuDevice* gpu_, FrameGraph* frame_graph_, Renderer* re
 }
 
 void glTFDrawTask::ExecuteRange( enki::TaskSetPartition range_, uint32_t threadnum_ ) {
-    ZoneScoped
+    ZoneScoped;
 
     using namespace raptor;
 

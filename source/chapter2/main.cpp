@@ -24,7 +24,7 @@
 
 #include "external/imgui/imgui.h"
 
-#include "external/tracy/Tracy.hpp"
+#include "external/tracy/tracy/Tracy.hpp"
 
 #include <stdio.h>
 #include <stdlib.h>

@@ -31,7 +31,17 @@ void ResourcePool::init( Allocator* allocator_, u32 pool_size_, u32 resource_siz
 }
 
 void ResourcePool::shutdown() {
+
+    if ( free_indices_head != 0 ) {
+        rprint( "Resource pool has unfreed resources.\n" );
+
+        for ( u32 i = 0; i < free_indices_head; ++i ) {
+            rprint( "\tResource %u\n", free_indices[ i ] );
+        }
+    }
+
     RASSERT( used_indices == 0 );
+
     allocator->deallocate( memory );
 }
 

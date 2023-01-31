@@ -244,6 +244,7 @@ struct GpuDevice : public Service {
     void                            destroy_render_pass_instant( ResourceHandle render_pass );
     void                            destroy_framebuffer_instant( ResourceHandle framebuffer );
     void                            destroy_shader_state_instant( ResourceHandle shader );
+    void                            destroy_page_pool_instant( ResourceHandle handle );
 
     void                            update_descriptor_set_instant( const DescriptorSetUpdate& update );
 

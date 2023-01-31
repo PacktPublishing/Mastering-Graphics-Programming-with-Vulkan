@@ -24,7 +24,7 @@
 #include "external/cglm/struct/cam.h"
 
 #include "external/stb_image.h"
-#include "external/tracy/Tracy.hpp"
+#include "external/tracy/tracy/Tracy.hpp"
 
 #include <assimp/cimport.h>
 #include <assimp/scene.h>
@@ -166,11 +166,6 @@ void DepthPrePass::prepare_draws( RenderScene& scene, FrameGraph* frame_graph, A
 
     const u64 hashed_name = hash_calculate( "main" );
     GpuTechnique* main_technique = renderer->resource_cache.techniques.get( hashed_name );
-
-    MaterialCreation material_creation;
-
-    material_creation.set_name( "material_depth_pre_pass" ).set_technique( main_technique ).set_render_index( 0 );
-    Material* material_depth_pre_pass = renderer->create_material( material_creation );
 
     mesh_instance_draws.init( resident_allocator, 16 );
 
@@ -470,11 +465,6 @@ void GBufferPass::prepare_draws( RenderScene& scene, FrameGraph* frame_graph, Al
     const u64 hashed_name = hash_calculate( "main" );
     GpuTechnique* main_technique = renderer->resource_cache.techniques.get( hashed_name );
 
-    MaterialCreation material_creation;
-
-    material_creation.set_name( "material_no_cull" ).set_technique( main_technique ).set_render_index( 0 );
-    Material* material = renderer->create_material( material_creation );
-
     mesh_instance_draws.init( resident_allocator, 16 );
 
     // Copy all mesh draws and change only material.
@@ -570,8 +560,12 @@ void GBufferPass::free_gpu_resources() {
     mesh_instance_draws.shutdown();
 
     for ( u32 i = 0; i < k_max_frames; ++i ) {
+        gpu.destroy_buffer( meshlet_instance_culling_indirect_buffer[ i ] );
+
         gpu.destroy_descriptor_set( generate_meshlet_index_buffer_descriptor_set[ i ] );
         gpu.destroy_descriptor_set( generate_meshlets_instances_descriptor_set[ i ] );
+
+        gpu.destroy_descriptor_set( meshlet_instance_culling_descriptor_set[ i ] );
     }
 }
 
@@ -592,11 +586,6 @@ void LateGBufferPass::prepare_draws( RenderScene& scene, FrameGraph* frame_graph
 
     const u64 hashed_name = hash_calculate( "main" );
     GpuTechnique* main_technique = renderer->resource_cache.techniques.get( hashed_name );
-
-    MaterialCreation material_creation;
-
-    material_creation.set_name( "material_no_cull" ).set_technique( main_technique ).set_render_index( 0 );
-    Material* material = renderer->create_material( material_creation );
 
     mesh_instance_draws.init( resident_allocator, 16 );
 
@@ -774,6 +763,8 @@ void LightPass::upload_gpu_data( RenderScene& scene ) {
 
         for ( u32 i = 0; i < k_max_frames; ++i ) {
 
+            scene.renderer->gpu->destroy_descriptor_set( lighting_descriptor_set[ i ] );
+
             // Legacy non-compute descriptor set.
             ds_creation.reset().set_layout( layout );
 
@@ -785,6 +776,8 @@ void LightPass::upload_gpu_data( RenderScene& scene ) {
 
             // TODO(marco): this shouldn't be created here
             if ( scene.use_meshlets ) {
+                scene.renderer->gpu->destroy_descriptor_set( scene.mesh_shader_transparent_descriptor_set[ i ] );
+
                 GpuTechnique* transparent_technique = renderer->resource_cache.techniques.get( hash_calculate( "meshlet" ) );
                 u32 meshlet_technique_index = transparent_technique->get_pass_index( "transparent_no_cull" );
                 GpuTechniquePass& transparent_pass = transparent_technique->passes[ meshlet_technique_index ];
@@ -815,6 +808,11 @@ void LightPass::free_gpu_resources() {
 
     gpu.destroy_buffer( mesh.pbr_material.material_buffer );
     gpu.destroy_descriptor_set( mesh.pbr_material.descriptor_set_transparent );
+    gpu.destroy_texture( lighting_debug_texture );
+
+    for ( u32 i = 0; i < k_max_frames; ++i ) {
+        gpu.destroy_descriptor_set( lighting_descriptor_set[ i ] );
+    }
 }
 
 //
@@ -882,11 +880,6 @@ void TransparentPass::prepare_draws( RenderScene& scene, FrameGraph* frame_graph
 
     const u64 hashed_name = hash_calculate( "main" );
     GpuTechnique* main_technique = renderer->resource_cache.techniques.get( hashed_name );
-
-    MaterialCreation material_creation;
-
-    material_creation.set_name( "material_transparent" ).set_technique( main_technique ).set_render_index( 0 );
-    Material* material_depth_pre_pass = renderer->create_material( material_creation );
 
     mesh_instance_draws.init( resident_allocator, 16 );
 
@@ -1095,11 +1088,15 @@ void DebugPass::prepare_draws( RenderScene& scene, FrameGraph* frame_graph, Allo
     mesh_name.init( 1024, scratch_allocator );
     cstring filename = mesh_name.append_use_f( "%s/sphere.obj", RAPTOR_DATA_FOLDER );
 
+#if ( DEBUG_DRAW_MESHLET_SPHERES | DEBUG_DRAW_POINT_LIGHT_SPHERES)
     load_debug_mesh( filename, resident_allocator, renderer, sphere_index_count, &sphere_mesh_buffer, &sphere_mesh_indices );
+#endif // DEBUG_DRAW_MESHLET_SPHERES | DEBUG_DRAW_POINT_LIGHT_SPHERES
 
     filename = mesh_name.append_use_f( "%s/cone.obj", RAPTOR_DATA_FOLDER );
 
+#if DEBUG_DRAW_MESHLET_CONES
     load_debug_mesh( filename, resident_allocator, renderer, cone_index_count, &cone_mesh_buffer, &cone_mesh_indices );
+#endif // DEBUG_DRAW_MESHLET_CONES
 
     scratch_allocator->free_marker( marker );
 
@@ -1296,18 +1293,18 @@ void DebugPass::prepare_draws( RenderScene& scene, FrameGraph* frame_graph, Allo
 
         // Draw pass
         pass_index = main_technique->get_pass_index( "debug_line_gpu" );
-        pass = main_technique->passes[ pass_index ];
+        GpuTechniquePass& line_gpu_pass = main_technique->passes[ pass_index ];
         debug_lines_draw_pipeline = main_technique->passes[ pass_index ].pipeline;
-        layout = renderer->gpu->get_descriptor_set_layout( main_technique->passes[ pass_index ].pipeline, k_material_descriptor_set_index );
+        layout = renderer->gpu->get_descriptor_set_layout( line_gpu_pass.pipeline, k_material_descriptor_set_index );
 
         set_creation.reset().set_layout( layout );
-        scene.add_scene_descriptors( set_creation, pass );
-        scene.add_debug_descriptors( set_creation, pass );
+        scene.add_scene_descriptors( set_creation, line_gpu_pass );
+        scene.add_debug_descriptors( set_creation, line_gpu_pass );
         debug_lines_draw_set = renderer->gpu->create_descriptor_set( set_creation );
 
         pass_index = main_technique->get_pass_index( "debug_line_2d_gpu" );
-        pass = main_technique->passes[ pass_index ];
-        debug_lines_2d_draw_pipeline = main_technique->passes[ pass_index ].pipeline;
+        GpuTechniquePass& line_2d_gpu_pass = main_technique->passes[ pass_index ];
+        debug_lines_2d_draw_pipeline = line_2d_gpu_pass.pipeline;
 
         debug_line_commands_sb_cache = scene.debug_line_commands_sb;
     }
@@ -1489,10 +1486,8 @@ void DoFPass::free_gpu_resources() {
 
     GpuDevice& gpu = *renderer->gpu;
 
-    {
-        renderer->destroy_texture( scene_mips );
-    }
-    gpu.destroy_buffer( mesh.pbr_material.material_buffer );
+    renderer->destroy_texture( scene_mips );
+
     gpu.destroy_descriptor_set( mesh.pbr_material.descriptor_set_transparent );
 }
 
@@ -2108,6 +2103,8 @@ void PointlightShadowPass::render( u32 current_frame_index, CommandBuffer* gpu_c
             mat4s* gpu_view_projections = ( mat4s* )gpu->map_buffer( view_projections_cb_map );
             vec4s* gpu_light_spheres = ( vec4s* )gpu->map_buffer( light_spheres_cb_map );
 
+            const mat4s left_handed_scale_matrix = glms_scale_make( { 1,1,-1 } );
+
             if ( gpu_view_projections && gpu_light_spheres ) {
 
                 for ( u32 l = 0; l < render_scene->active_lights; ++l ) {
@@ -2119,37 +2116,43 @@ void PointlightShadowPass::render( u32 current_frame_index, CommandBuffer* gpu_c
                     const mat4s projection = glms_perspective( glm_rad( 90.f ), 1.f, 0.01f, light.radius );
 
                     // Positive X matrices
-                    mat4s view = glms_look( light.world_position, { 1,0,0 }, render_scene->cubeface_flip[ 0 ] ? vec3s{ 0, -1, 0 } : vec3s{ 0,1,0 } );
+                    mat4s view = glms_look( light.world_position, { -1,0,0 }, { 0,1,0 } );
+                    view = glms_mat4_mul( left_handed_scale_matrix, view );
                     mat4s view_projection = glms_mat4_mul( projection, view );
 
                     gpu_view_projections[ l * 6 + 0 ] = view_projection;
 
                     // Negative X
-                    view = glms_look( light.world_position, { -1,0,0 }, render_scene->cubeface_flip[ 1 ] ? vec3s{ 0, -1, 0 } : vec3s{ 0,1,0 } );
+                    view = glms_look( light.world_position, { 1,0,0 }, { 0,1,0 } );
+                    view = glms_mat4_mul( left_handed_scale_matrix, view );
                     view_projection = glms_mat4_mul( projection, view );
 
                     gpu_view_projections[ l * 6 + 1 ] = view_projection;
 
                     // Positive Y
-                    view = glms_look( light.world_position, { 0,1,0 }, render_scene->cubeface_flip[ 2 ] ? vec3s{ 0,0,-1 } : vec3s{ 0,0,1 } );
+                    view = glms_look( light.world_position, { 0,-1,0 }, { 0,0,-1 } );
+                    view = glms_mat4_mul( left_handed_scale_matrix, view );
                     view_projection = glms_mat4_mul( projection, view );
 
                     gpu_view_projections[ l * 6 + 2 ] = view_projection;
 
                     // Negative Y
-                    view = glms_look( light.world_position, { 0,-1,0 }, render_scene->cubeface_flip[ 3 ] ? vec3s{ 0,0,1 } : vec3s{ 0,0,-1 } );
+                    view = glms_look( light.world_position, { 0,1,0 }, { 0,0,1 } );
+                    view = glms_mat4_mul( left_handed_scale_matrix, view );
                     view_projection = glms_mat4_mul( projection, view );
 
                     gpu_view_projections[ l * 6 + 3 ] = view_projection;
 
                     // Positive Z
-                    view = glms_look( light.world_position, { 0,0,1 }, render_scene->cubeface_flip[ 4 ] ? vec3s{ 0,-1,0 } : vec3s{ 0,1,0 } );
+                    view = glms_look( light.world_position, { 0,0,-1 }, { 0,1,0 } );
+                    view = glms_mat4_mul( left_handed_scale_matrix, view );
                     view_projection = glms_mat4_mul( projection, view );
 
                     gpu_view_projections[ l * 6 + 4 ] = view_projection;
 
                     // Negative Z
-                    view = glms_look( light.world_position, { 0,0,-1 }, render_scene->cubeface_flip[ 5 ] ? vec3s{ 0,-1,0 } : vec3s{ 0,1,0 } );
+                    view = glms_look( light.world_position, { 0,0,1 }, { 0,1,0 } );
+                    view = glms_mat4_mul( left_handed_scale_matrix, view );
                     view_projection = glms_mat4_mul( projection, view );
 
                     gpu_view_projections[ l * 6 + 5 ] = view_projection;
@@ -2396,10 +2399,34 @@ void PointlightShadowPass::free_gpu_resources() {
 
     GpuDevice& gpu = *renderer->gpu;
 
+    mesh_instance_draws.shutdown();
+
+    for ( u32 i = 0; i < k_max_frames; ++i ) {
+        gpu.destroy_buffer( pointlight_view_projections_cb[ i ] );
+        gpu.destroy_buffer( pointlight_spheres_cb[ i ] );
+        gpu.destroy_descriptor_set( cubemap_meshlet_draw_descriptor_set[ i ] );
+        gpu.destroy_descriptor_set(meshlet_culling_descriptor_set[ i ]);
+        gpu.destroy_buffer(meshlet_visible_instances[ i ]);
+        gpu.destroy_buffer(per_light_meshlet_instances[ i ]);
+        gpu.destroy_descriptor_set(shadow_resolution_descriptor_set[ i ]);
+        gpu.destroy_descriptor_set(meshlet_write_commands_descriptor_set[ i ]);
+        gpu.destroy_buffer(meshlet_shadow_indirect_cb[ i ]);
+        gpu.destroy_buffer(shadow_resolutions[ i ]);
+        gpu.destroy_buffer(shadow_resolutions_readback[ i ]);
+    }
+
+    gpu.destroy_render_pass( cubemap_render_pass );
+
+    gpu.destroy_buffer( light_aabbs );
+
+    gpu.destroy_texture( tetrahedron_shadow_texture );
     gpu.destroy_texture( cubemap_debug_face_texture );
     gpu.destroy_texture( cubemap_shadow_array_texture );
 
     gpu.destroy_framebuffer( cubemap_framebuffer );
+    gpu.destroy_framebuffer( tetrahedron_framebuffer );
+
+    gpu.destroy_page_pool( shadow_maps_pool );
 }
 
 void PointlightShadowPass::recreate_dependent_resources( RenderScene& scene ) {
@@ -2417,8 +2444,10 @@ void PointlightShadowPass::recreate_dependent_resources( RenderScene& scene ) {
 
         gpu.destroy_texture( cubemap_debug_face_texture );
         gpu.destroy_texture( cubemap_shadow_array_texture );
+        gpu.destroy_texture( tetrahedron_shadow_texture );
 
         gpu.destroy_framebuffer( cubemap_framebuffer );
+        gpu.destroy_framebuffer( tetrahedron_framebuffer );
     }
 
     last_active_lights = active_lights;
@@ -2438,7 +2467,6 @@ void PointlightShadowPass::recreate_dependent_resources( RenderScene& scene ) {
     texture_creation.reset().set_size( layer_width, layer_height, 1 ).set_format_type( depth_texture_format, TextureType::Texture2D )
         .set_flags( TextureFlags::RenderTarget_mask ).set_name( "cubemap_array_debug" );
     cubemap_debug_face_texture = gpu.create_texture( texture_creation );
-    gpu.create_texture( texture_creation );
 
     u32 max_width = 512;
     u32 max_height = max_width;
@@ -2905,6 +2933,10 @@ void RenderScene::upload_gpu_data( UploadGpuDataContext& context ) {
             gpu_light.color = light.color;
             gpu_light.intensity = light.intensity;
             gpu_light.shadow_map_resolution = light.shadow_map_resolution;
+            // NOTE: calculation used to retrieve depth for cubemaps.
+            // near = 0.01f as a static value, if you change here change also
+            // method vector_to_depth_value in lighting.h in the shaders!
+            gpu_light.rcp_n_minus_f = 1.0f / ( 0.01f - light.radius );
         }
 
         gpu.unmap_buffer( cb_map );
@@ -3399,7 +3431,7 @@ void DrawTask::init( GpuDevice* gpu_, FrameGraph* frame_graph_, Renderer* render
 }
 
 void DrawTask::ExecuteRange( enki::TaskSetPartition range_, uint32_t threadnum_ ) {
-    ZoneScoped
+    ZoneScoped;
 
     using namespace raptor;
 
@@ -3767,6 +3799,7 @@ void DebugRenderer::shutdown() {
 
     renderer->gpu->destroy_buffer( lines_vb );
     renderer->gpu->destroy_buffer( lines_vb_2d );
+    renderer->gpu->destroy_descriptor_set( debug_lines_draw_set );
 }
 
 void DebugRenderer::line( const vec3s& from, const vec3s& to, Color color ) {

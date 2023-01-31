@@ -537,7 +537,7 @@ namespace raptor {
         f32                     intensity;
 
         f32                     shadow_map_resolution;
-        f32                     pad0;
+        f32                     rcp_n_minus_f;          // Calculation of 1 / (n - f) used to retrieve cubemap shadows depth value.
         f32                     pad1;
         f32                     pad2;
 

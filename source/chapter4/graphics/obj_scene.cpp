@@ -11,7 +11,7 @@
 #include "external/cglm/struct/affine.h"
 #include "external/cglm/struct/mat4.h"
 #include "external/cglm/struct/vec3.h"
-#include "external/tracy/Tracy.hpp"
+#include "external/tracy/tracy/Tracy.hpp"
 
 #include <assimp/cimport.h>
 #include <assimp/scene.h>
@@ -47,7 +47,7 @@ static int obj_mesh_material_compare( const void* a, const void* b ) {
 //
 //
 void ObjScene::draw_mesh( CommandBuffer* gpu_commands, ObjDraw& mesh_draw ) {
-    ZoneScoped
+    ZoneScoped;
 
     gpu_commands->bind_vertex_buffer( mesh_draw.geometry_buffer_gpu, 0, mesh_draw.position_offset );
     gpu_commands->bind_vertex_buffer( mesh_draw.geometry_buffer_gpu, 1, mesh_draw.tangent_offset );
@@ -393,7 +393,7 @@ void ObjScene::submit_draw_task( ImGuiService* imgui, GPUProfiler* gpu_profiler,
 }
 
 void ObjScene::prepare_draws( Renderer* renderer, StackAllocator* scratch_allocator, SceneGraph* scene_graph ) {
-    ZoneScoped
+    ZoneScoped;
 
     using namespace raptor;
 

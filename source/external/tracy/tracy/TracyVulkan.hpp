@@ -29,12 +29,15 @@ using TracyVkCtx = void*;
 
 #else
 
+#if !defined VK_NULL_HANDLE
+#  error "You must include Vulkan headers before including TracyVulkan.hpp"
+#endif
+
 #include <assert.h>
 #include <stdlib.h>
-#include <vulkan/vulkan.h>
 #include "Tracy.hpp"
-#include "client/TracyProfiler.hpp"
-#include "client/TracyCallstack.hpp"
+#include "../client/TracyProfiler.hpp"
+#include "../client/TracyCallstack.hpp"
 
 namespace tracy
 {
@@ -65,8 +68,8 @@ public:
             if( num > 4 ) num = 4;
             VkTimeDomainEXT data[4];
             _vkGetPhysicalDeviceCalibrateableTimeDomainsEXT( physdev, &num, data );
-            VkTimeDomainEXT supportedDomain = VK_TIME_DOMAIN_MAX_ENUM_EXT;
-#if defined _WIN32 || defined __CYGWIN__
+            VkTimeDomainEXT supportedDomain = (VkTimeDomainEXT)-1;
+#if defined _WIN32
             supportedDomain = VK_TIME_DOMAIN_QUERY_PERFORMANCE_COUNTER_EXT;
 #elif defined __linux__ && defined CLOCK_MONOTONIC_RAW
             supportedDomain = VK_TIME_DOMAIN_CLOCK_MONOTONIC_RAW_EXT;
@@ -152,7 +155,7 @@ public:
             }
             m_deviation = minDeviation * 3 / 2;
 
-#if defined _WIN32 || defined __CYGWIN__
+#if defined _WIN32
             m_qpcToNs = int64_t( 1000000000. / GetFrequencyQpc() );
 #endif
 
@@ -301,7 +304,7 @@ private:
         }
         while( deviation > m_deviation );
 
-#if defined _WIN32 || defined __CYGWIN__
+#if defined _WIN32
         tGpu = ts[0];
         tCpu = ts[1] * m_qpcToNs;
 #elif defined __linux__ && defined CLOCK_MONOTONIC_RAW
@@ -456,7 +459,6 @@ private:
 
 static inline VkCtx* CreateVkContext( VkPhysicalDevice physdev, VkDevice device, VkQueue queue, VkCommandBuffer cmdbuf, PFN_vkGetPhysicalDeviceCalibrateableTimeDomainsEXT gpdctd, PFN_vkGetCalibratedTimestampsEXT gct )
 {
-    InitRPMallocThread();
     auto ctx = (VkCtx*)tracy_malloc( sizeof( VkCtx ) );
     new(ctx) VkCtx( physdev, device, queue, cmdbuf, gpdctd, gct );
     return ctx;

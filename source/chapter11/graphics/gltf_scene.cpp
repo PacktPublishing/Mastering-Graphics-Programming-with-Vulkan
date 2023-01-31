@@ -16,7 +16,7 @@
 #include "external/cglm/struct/vec3.h"
 #include "external/cglm/struct/quat.h"
 
-#include "external/tracy/Tracy.hpp"
+#include "external/tracy/tracy/Tracy.hpp"
 #include "external/meshoptimizer/meshoptimizer.h"
 
 namespace raptor {
@@ -823,6 +823,7 @@ void glTFScene::shutdown( Renderer* renderer ) {
 
         gpu.destroy_buffer( mesh.pbr_material.material_buffer );
         gpu.destroy_descriptor_set( mesh.pbr_material.descriptor_set_transparent );
+        gpu.destroy_descriptor_set( mesh.pbr_material.descriptor_set_main );
     }
 
     gpu.destroy_buffer( scene_cb );
@@ -849,14 +850,17 @@ void glTFScene::shutdown( Renderer* renderer ) {
 
         gpu.destroy_buffer( mesh_task_indirect_late_commands_sb[ i ] );
         gpu.destroy_buffer( mesh_task_indirect_count_late_sb[ i ] );
+        gpu.destroy_buffer( meshlet_instances_indirect_count_sb[ i ] );
 
         gpu.destroy_buffer( lights_lut_sb[ i ] );
         gpu.destroy_buffer( lights_tiles_sb[ i ] );
         gpu.destroy_buffer( lights_indices_sb[ i ] );
+        gpu.destroy_buffer( lighting_constants_cb[ i ] );
 
         gpu.destroy_descriptor_set( mesh_shader_early_descriptor_set[ i ] );
         gpu.destroy_descriptor_set( mesh_shader_late_descriptor_set[ i ] );
         gpu.destroy_descriptor_set( mesh_shader_transparent_descriptor_set[ i ] );
+        gpu.destroy_descriptor_set( meshlet_emulation_descriptor_set[ i ] );
     }
 
     for ( u32 i = 0; i < images.size; ++i) {
@@ -872,6 +876,7 @@ void glTFScene::shutdown( Renderer* renderer ) {
     }
 
     gpu.destroy_buffer( lights_list_sb );
+    gpu.destroy_texture( fragment_shading_rate_image );
 
     lights.shutdown();
     lights_lut.shutdown();

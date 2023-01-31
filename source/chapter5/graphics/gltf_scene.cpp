@@ -16,7 +16,7 @@
 #include "external/cglm/struct/vec3.h"
 #include "external/cglm/struct/quat.h"
 
-#include "external/tracy/Tracy.hpp"
+#include "external/tracy/tracy/Tracy.hpp"
 
 
 namespace raptor {
@@ -278,7 +278,7 @@ void glTFScene::init( cstring filename, cstring path, Allocator* resident_alloca
         VkBufferUsageFlags flags = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
 
         char* buffer_name = names_buffer.append_use_f( "buffer_%u", buffer_index );
-        
+
         u8* buffer_data = ( u8* )buffers_data[ buffer_index ];
         BufferResource* br = renderer->create_buffer( flags, ResourceUsageType::Immutable, buffer.byte_length, buffer_data, buffer_name );
         buffers.push( *br );
@@ -616,7 +616,7 @@ void glTFScene::prepare_draws( Renderer* renderer, StackAllocator* scratch_alloc
 
         // Cache node name
         scene_graph->set_debug_data( node_index, node.name.data );
-        
+
         if ( node.mesh == glTF::INVALID_INT_VALUE ) {
             continue;
         }

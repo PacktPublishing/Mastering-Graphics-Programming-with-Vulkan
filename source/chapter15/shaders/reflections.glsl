@@ -22,6 +22,10 @@ layout( set = MATERIAL_SET, binding = 40 ) uniform ReflectionsConstants
     uvec4 gbuffer_texures; // x = roughness, y= normals, z = indirect lighting
 };
 
+layout( push_constant ) uniform PushConstants {
+    float       resolution_scale;
+};
+
 #endif
 
 #if defined (RAYGEN_REFLECTIONS_RT)
@@ -109,7 +113,7 @@ void main() {
     ivec2 xy = ivec2( gl_LaunchIDEXT.xy );
     ivec2 test_fragment = ivec2( resolution ) / 2;
 
-    bool render_debug_line = ( xy == test_fragment );
+    bool render_debug_line = false;//( xy == test_fragment );
     vec4 white =  vec4( 1 );
     vec4 black =  vec4( 0, 0, 0, 1 );
     vec4 yellow = vec4( 1, 1, 0, 1 );
@@ -117,7 +121,9 @@ void main() {
     vec4 green =  vec4( 0, 1, 0, 1 );
     vec4 blue =   vec4( 0, 0, 1, 1 );
 
-    float roughness = forced_roughness > 0.0 ? forced_roughness : texelFetch( global_textures[ gbuffer_texures.x ], xy, 0 ).y;
+    ivec2 scaled_xy = ivec2( xy * resolution_scale );
+
+    float roughness = forced_roughness > 0.0 ? forced_roughness : texelFetch( global_textures[ gbuffer_texures.x ], scaled_xy, 0 ).y;
 
     rng_state = seed( gl_LaunchIDEXT.xy ) + current_frame;
 
@@ -125,18 +131,20 @@ void main() {
 
     // float U1 = rand_pcg() * rnd_normalizer;
     // float U2 = rand_pcg() * rnd_normalizer;
-    vec2 U = vec2( pcg2d( gl_LaunchIDEXT.xy + current_frame ) ) * rnd_normalizer;
+    vec2 U = vec2( pcg2d( gl_LaunchIDEXT.xy + uvec2( current_frame) ) ) * rnd_normalizer;
+    U = interleaved_gradient_noise2( xy, current_frame );
 
     vec3 reflection_colour = vec3( 0 );
 
     if ( roughness <= 0.3 ) {
-        float depth = texelFetch( global_textures[ depth_texture_index ], xy, 0 ).r;
-        vec2 screen_uv = uv_nearest( xy, resolution );
+        ivec2 scaled_xy = ivec2(xy * resolution_scale);
+        float depth = texelFetch( global_textures[ depth_texture_index ], scaled_xy, 0 ).r;
+        vec2 screen_uv = uv_nearest( xy, resolution / resolution_scale );
         vec3 world_pos = world_position_from_depth( screen_uv, depth, inverse_view_projection );
 
         vec3 incoming = normalize( world_pos - camera_position.xyz );
 
-        vec2 encoded_normal = texelFetch( global_textures[ gbuffer_texures.y ], xy, 0 ).rg;
+        vec2 encoded_normal = texelFetch( global_textures[ gbuffer_texures.y ], scaled_xy, 0 ).rg;
         vec3 normal = octahedral_decode( encoded_normal );
 
         vec3 vndf_normal = sampleGGXVNDF( incoming, roughness, roughness, U.x, U.y );
@@ -319,7 +327,9 @@ void main() {
                 // reflection_colour = vec3( shadow_term, 0, 0 );
             }
 
-            // reflection_colour = vec3( float( light_index ), 0, 0 );
+            // Indirect light sampling
+            vec3 indirect_color = sample_irradiance( p_world.xyz, triangle_normal, camera_position.xyz );
+            reflection_colour += indirect_color;
         }
     }
 
@@ -355,18 +365,18 @@ void main() {
 
 #endif
 
-#if defined( COMPUTE_SVGF_ACCUMULATION ) || defined( COMPUTE_SVGF_VARIANCE ) || defined( COMPUTE_SVGF_WAVELET )
+#if defined( COMPUTE_SVGF_ACCUMULATION ) || defined( COMPUTE_SVGF_VARIANCE ) || defined( COMPUTE_SVGF_WAVELET ) || defined(COMPUTE_SVGF_DOWNSAMPLE)
 
 layout( set = MATERIAL_SET, binding = 40 ) uniform SVGFAccumulationConstants
 {
     uint motion_vectors_texture_index;
     uint mesh_id_texture_index;
     uint normals_texture_index;
-    uint depth_normal_dd_texture_index;
+    uint depth_normal_fwidth_texture_index;
 
     uint history_mesh_id_texture_index;
     uint history_normals_texture_index;
-    uint history_depth_texture;
+    uint history_linear_depth_texture;
     uint reflections_texture_index;
 
     uint history_reflections_texture_index;
@@ -377,6 +387,12 @@ layout( set = MATERIAL_SET, binding = 40 ) uniform SVGFAccumulationConstants
     uint variance_texture_index;
     uint filtered_color_texture_index;
     uint updated_variance_texture_index;
+    uint linear_z_dd_texture_index;
+
+    float resolution_scale;
+    float resolution_scale_rcp;
+    float temporal_depth_difference;
+    float temporal_normal_difference;
 };
 
 #endif
@@ -384,42 +400,45 @@ layout( set = MATERIAL_SET, binding = 40 ) uniform SVGFAccumulationConstants
 #if defined( COMPUTE_SVGF_ACCUMULATION )
 
 bool check_temporal_consistency( uvec2 frag_coord ) {
+
+    ivec2 scaled_xy = ivec2( (frag_coord + 0.5) * resolution_scale_rcp );
     vec2 frag_coord_center = vec2( frag_coord ) + 0.5;
 
+    // All current frame textures are fullscreen, while history are half size.
     vec2 motion_vector = texelFetch( global_textures[ motion_vectors_texture_index ], ivec2( frag_coord ), 0 ).rg;
 
-    vec2 prev_frag_coord = frag_coord_center + motion_vector;
+    vec2 prev_frag_coord = frag_coord_center + motion_vector * resolution_scale;
 
     // NOTE(marco): previous sample is outside texture
-    if ( any( lessThan( prev_frag_coord, vec2( 0 ) ) ) || any( greaterThanEqual( prev_frag_coord, resolution ) ) ) {
+    if ( any( lessThan( prev_frag_coord, vec2( 0 ) ) ) || any( greaterThanEqual( prev_frag_coord, resolution * resolution_scale  ) ) ) {
         return false;
     }
 
-    uint mesh_id = texelFetch( global_utextures[ mesh_id_texture_index ], ivec2( frag_coord ), 0 ).r;
-    uint prev_mesh_id = texelFetch( global_utextures[ history_mesh_id_texture_index ], ivec2( prev_frag_coord ), 0 ).r;
+    uint mesh_id = texelFetch( global_utextures[ mesh_id_texture_index ], scaled_xy, 0 ).r;
+    uint prev_mesh_id = texelFetch( global_utextures[ history_mesh_id_texture_index ], ivec2( frag_coord ), 0 ).r;
 
     if ( mesh_id != prev_mesh_id ) {
         return false;
     }
 
-    float z = linearize_raw_depth( texelFetch( global_textures[ depth_texture_index ], ivec2( frag_coord ), 0 ).r );
-    float prev_z = linearize_raw_depth( texelFetch( global_textures[ history_depth_texture ], ivec2( prev_frag_coord ), 0 ).r );
+    vec2 depth_normal_fwidth = texelFetch( global_textures[ depth_normal_fwidth_texture_index ], scaled_xy, 0 ).rg;
+    float z = texelFetch( global_textures[ linear_z_dd_texture_index ], scaled_xy, 0 ).r;
+    float prev_z = texelFetch( global_textures[ history_linear_depth_texture ], ivec2( prev_frag_coord ), 0 ).r;
 
-    vec2 depth_normal_dd = texelFetch( global_textures[ depth_normal_dd_texture_index ], ivec2( frag_coord ), 0 ).rg;
-    float depth_diff = abs( z - prev_z ) / ( depth_normal_dd.x + 1e-2 );
+    float depth_diff = abs( prev_z - z ) / ( depth_normal_fwidth.x + 1e-2 );
 
-    if ( depth_diff > 10 ) {
+    if ( depth_diff > temporal_depth_difference ) {
         return false;
     }
 
-    vec2 encoded_normal = texelFetch( global_textures[ normals_texture_index ], ivec2( frag_coord ), 0 ).rg;
+    vec2 encoded_normal = texelFetch( global_textures[ normals_texture_index ], scaled_xy, 0 ).rg;
     vec3 normal = octahedral_decode( encoded_normal );
 
     vec2 prev_encoded_normal = texelFetch( global_textures[ history_normals_texture_index ], ivec2( prev_frag_coord ), 0 ).rg;
     vec3 prev_normal = octahedral_decode( prev_encoded_normal );
 
-    float normal_diff = distance( normal, prev_normal ) / ( depth_normal_dd.y + 1e-2 );
-    if ( normal_diff > 16.0 ) {
+    float normal_diff = distance( normal, prev_normal ) / ( depth_normal_fwidth.y + 1e-2 );
+    if ( normal_diff > temporal_normal_difference ) {
         return false;
     }
 
@@ -483,34 +502,32 @@ float h[ 3 ] = {
     1.0 / 16.0
 };
 
-float sigma_z = 1.0;
-float sigma_n = 128.0;
-float sigma_l = 4.0;
+layout( push_constant ) uniform PushConstants {
+    uint        step_size;
+    float       sigma_z;
+    float       sigma_n;
+    float       sigma_l;
+};
 
-float compute_w( ivec2 p, ivec2 q ) {
+float compute_w( vec3 n_p, vec2 linear_z_dd, float l_p, float l_q, ivec2 p, ivec2 q, float phi_depth ) {
+
+    ivec2 scaled_q = ivec2(q * resolution_scale_rcp );
     // w_n
-    vec2 encoded_normal_p = texelFetch( global_textures[ normals_texture_index ], p, 0 ).rg;
-    vec3 n_p = octahedral_decode( encoded_normal_p );
-
-    vec2 encoded_normal_q = texelFetch( global_textures[ normals_texture_index ], q, 0 ).rg;
+    // This normal is the gbuffer_normals
+    const vec2 encoded_normal_q = texelFetch( global_textures[ normals_texture_index ], scaled_q, 0 ).rg;
     vec3 n_q = octahedral_decode( encoded_normal_q );
 
     float w_n = pow( max( 0, dot( n_p, n_q ) ), sigma_n );
 
     // w_z
-    float z_dd = texelFetch( global_textures[ depth_normal_dd_texture_index ], p, 0 ).r;
-    float z_p = linearize_raw_depth( texelFetch( global_textures[ depth_texture_index ], p, 0 ).r );
-    float z_q = linearize_raw_depth( texelFetch( global_textures[ depth_texture_index ], q, 0 ).r );
+    // This is the main depth
+    float z_q = texelFetch( global_textures[ linear_z_dd_texture_index ], scaled_q, 0 ).r;
 
-    float w_z = exp( -( abs( z_p - z_q ) / ( sigma_z * abs( z_dd ) + 1e-5 ) ) );
+    float w_z = exp( -( abs( linear_z_dd.x - z_q ) / ( sigma_z * abs( linear_z_dd.y ) + 1e-5 ) ) );
+    // Different filter coming from the falcor implementation, works better.
+    w_z = ( phi_depth == 0 ) ? 0.0f : abs( linear_z_dd.x - z_q ) / phi_depth;
 
     // w_l
-    vec3 c_p = texelFetch( global_textures[ integrated_color_texture_index ], p, 0 ).rgb;
-    vec3 c_q = texelFetch( global_textures[ integrated_color_texture_index ], q, 0 ).rgb;
-
-    float l_p = luminance( c_p );
-    float l_q = luminance( c_q );
-
     // NOTE(marco): gaussian filter, adapted from Falcor
     // https://github.com/NVIDIAGameWorks/Falcor/blob/master/Source/RenderPasses/SVGFPass/SVGFAtrous.ps.slang
     const float kernel[2][2] = {
@@ -524,7 +541,7 @@ float compute_w( ivec2 p, ivec2 q ) {
         for ( int xx = -radius; xx <= radius; xx++ ) {
             ivec2 s = p + ivec2( xx, yy );
 
-            if ( any( lessThan( s, ivec2( 0 ) ) ) || any( greaterThanEqual( s, ivec2( resolution ) ) ) ) {
+            if ( any( lessThan( s, ivec2( 0 ) ) ) || any( greaterThanEqual( s, ivec2( resolution * resolution_scale) ) ) ) {
                 continue;
             }
 
@@ -536,7 +553,9 @@ float compute_w( ivec2 p, ivec2 q ) {
 
     float w_l = exp( -( abs( l_p - l_q ) / ( sigma_l * sqrt( max( 0, g ) ) + 1e-5 ) ) );
 
-    return w_z * w_n * w_l;
+    // Calculate final weight
+    float final_weight = exp( 0.0 - max( w_l, 0.0 ) - max( w_z, 0.0 ) ) * w_n;
+    return final_weight;
 }
 
 layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
@@ -548,12 +567,24 @@ void main() {
 
     float new_variance = 0;
 
-    for ( int y = -2; y <= 2; ++y) {
-        for( int x = -2; x <= 2; ++x ) {
-            ivec2 offset = ivec2( x, y );
-            ivec2 q = frag_coord + offset;
+    ivec2 scaled_xy = ivec2( frag_coord * resolution_scale_rcp );
+    vec2 encoded_normal_p = texelFetch( global_textures[ normals_texture_index ], scaled_xy, 0 ).rg;
+    vec3 normal_p = octahedral_decode( encoded_normal_p );
+    // In this case this is the depth texture.
+    vec2 linear_z_dd = texelFetch( global_textures[ linear_z_dd_texture_index ], scaled_xy, 0 ).rg;
+    vec3 color_p = texelFetch( global_textures[ integrated_color_texture_index ], frag_coord, 0 ).rgb;
+    float luminance_p = luminance( color_p );
 
-            if ( any( lessThan( q, ivec2( 0 ) ) ) || any( greaterThanEqual( q, ivec2( resolution ) ) ) ) {
+    const int radius = 1;
+
+    const float phi_depth = max(linear_z_dd.y, 1e-8) * step_size;
+
+    for ( int y = -radius; y <= radius; ++y) {
+        for( int x = -radius; x <= radius; ++x ) {
+            ivec2 offset = ivec2( x, y );
+            ivec2 q = frag_coord + ivec2(offset * resolution_scale * step_size);
+
+            if ( any( lessThan( q, ivec2( 0 ) ) ) || any( greaterThanEqual( q, ivec2( resolution * resolution_scale ) ) ) ) {
                 continue;
             }
 
@@ -561,11 +592,12 @@ void main() {
                 continue;
             }
 
+            vec3 c_q = texelFetch( global_textures[ integrated_color_texture_index ], q, 0 ).rgb;
+            float l_q = luminance( c_q );
             float h_q = h[ abs( x ) ] * h[ abs( y ) ];
 
-            float w_pq = compute_w( frag_coord, q );
+            float w_pq = compute_w( normal_p, linear_z_dd, luminance_p, l_q, frag_coord, q, phi_depth );
 
-            vec3 c_q = texelFetch( global_textures[ integrated_color_texture_index ], q, 0 ).rgb;
             float prev_variance = texelFetch( global_textures[ variance_texture_index ], q, 0 ).r;
 
             float sample_weight = h_q * w_pq;
@@ -585,3 +617,142 @@ void main() {
 }
 
 #endif // COMPUTE_SVGF_WAVELET
+
+#if defined(COMPUTE_BRDF_LUT_GENERATION)
+
+float radical_inverse_vdc(uint bits) {
+
+    bits = (bits << 16u) | (bits >> 16u);
+    bits = ((bits & 0x55555555u) << 1u) | ((bits & 0xAAAAAAAAu) >> 1u);
+    bits = ((bits & 0x33333333u) << 2u) | ((bits & 0xCCCCCCCCu) >> 2u);
+    bits = ((bits & 0x0F0F0F0Fu) << 4u) | ((bits & 0xF0F0F0F0u) >> 4u);
+    bits = ((bits & 0x00FF00FFu) << 8u) | ((bits & 0xFF00FF00u) >> 8u);
+
+    return float(bits) * 2.3283064365386963e-10; // / 0x100000000
+}
+
+vec2 hammersley(uint i, uint N) {
+    return vec2(float(i) / float(N), radical_inverse_vdc(i));
+}
+
+vec3 importance_sample_ggx(vec2 Xi, vec3 N, float roughness) {
+    float a = roughness * roughness;
+    
+    float phi = 2.0 * PI * Xi.x;
+    float cos_theta = sqrt((1.0 - Xi.y) / (1.0 + (a * a - 1.0) * Xi.y));
+    float sin_theta = sqrt(1.0 - cos_theta * cos_theta);
+    
+    vec3 H;
+    H.x = cos(phi) * sin_theta;
+    H.y = sin(phi) * sin_theta;
+    H.z = cos_theta;
+
+    vec3 up = abs(N.z) < 0.999 ? vec3(0.0, 0.0, 1.0) : vec3(1.0, 0.0, 0.0);
+    vec3 tangent = normalize(cross(up, N));
+    vec3 bitangent = cross(N, tangent);
+
+    vec3 sample_vec = H.x * tangent + H.y * bitangent + H.z * N;
+    return normalize(sample_vec);
+}
+
+float geometry_schlick_ggx(float NdotV, float roughness) {
+    float a = roughness;
+    float k = (a * a) / 2.0f;
+    float nom = NdotV;
+    float denom = NdotV * (1.0 - k) + k;
+    return nom / denom;
+}
+
+float geometry_smith(vec3 N, vec3 V, vec3 L, float roughness) {
+    float NdotV = max(dot(N, V), 0.0);
+    float NdotL = max(dot(N, L), 0.0);
+    float ggx2 = geometry_schlick_ggx(NdotV, roughness);
+    float ggx1 = geometry_schlick_ggx(NdotL, roughness);
+    return ggx1 * ggx2;
+}
+
+vec2 integrate_brdf(float NdotV, float roughness) {
+    vec3 V;
+    V.x = sqrt(1.0 - NdotV * NdotV);
+    V.y = 0.0f;
+    V.z = NdotV;
+
+    float A = 0.0;
+    float B = 0.0;
+    
+    vec3 N = vec3(0.0, 0.0, 1.0);
+    
+    const uint sample_count = 1024u;
+    for(uint i = 0u; i < sample_count; ++i) {
+        vec2 Xi = hammersley(i, sample_count);
+        vec3 H = importance_sample_ggx(Xi, N, roughness);
+        vec3 L = normalize(2.0 * dot(V, H) * H - V);
+        
+        float NdotL = max(L.z, 0.0);
+        float NdotH = max(H.z, 0.0);
+        float VdotH = max(dot(V, H), 0.0);
+        
+        if(NdotL > 0.0)
+        {
+            float G = geometry_smith(N, V, L, roughness);
+            float G_Vis = (G * VdotH) / (NdotH * NdotV);
+            float Fc = pow(1.0 - VdotH, 5.0);
+            A += (1.0 - Fc) * G_Vis;
+            B += Fc * G_Vis;
+        }
+    }
+    A /= float(sample_count);
+    B /= float(sample_count);
+    return vec2(A, B);
+}
+
+layout( push_constant ) uniform PushConstants {
+    uint        output_texture_index;
+    uint        output_texture_size;
+};
+
+layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+void main() {
+    ivec2 frag_coord = ivec2( gl_GlobalInvocationID.xy );
+    vec2 uv = uv_nearest( frag_coord, vec2(output_texture_size) );
+    vec2 integrated_brdf = integrate_brdf( uv.x, 1 - uv.y );
+    imageStore( global_images_2d[ output_texture_index ], frag_coord, vec4( integrated_brdf, 0, 0 ) );
+}
+
+#endif // COMPUTE_BRDF_LUT_GENERATION
+
+#if defined(COMPUTE_SVGF_DOWNSAMPLE)
+
+ivec2 pixel_offsets[] = ivec2[]( ivec2(0,0), ivec2(0,1), ivec2(1,0), ivec2(1,1));
+
+layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+void main() {
+    ivec2 frag_coord = ivec2( gl_GlobalInvocationID.xy );
+
+    int chosen_hiresolution_sample_index = 0;
+    float closer_depth = 0.f;
+    for ( int i = 0; i < 4; ++i ) {
+
+        float depth = texelFetch(global_textures[nonuniformEXT(depth_texture_index)], (frag_coord.xy) * 2 + pixel_offsets[i], 0).r;
+
+        if ( closer_depth < depth ) {
+            closer_depth = depth;
+            chosen_hiresolution_sample_index = i;
+        }
+    }
+
+    // Write the most representative sample of all the textures
+    vec4 normals = texelFetch(global_textures[nonuniformEXT(normals_texture_index)], (frag_coord.xy) * 2 + pixel_offsets[chosen_hiresolution_sample_index], 0);
+    imageStore( global_images_2d[ history_normals_texture_index ], frag_coord, normals );
+
+    vec4 mesh_id = texelFetch(global_textures[nonuniformEXT(mesh_id_texture_index)], (frag_coord.xy) * 2 + pixel_offsets[chosen_hiresolution_sample_index], 0);
+    imageStore( global_images_2d[ history_mesh_id_texture_index ], frag_coord, mesh_id );
+
+    vec4 linear_z_dd = texelFetch(global_textures[nonuniformEXT(linear_z_dd_texture_index)], (frag_coord.xy) * 2 + pixel_offsets[chosen_hiresolution_sample_index], 0);
+    imageStore( global_images_2d[ history_linear_depth_texture ], frag_coord, linear_z_dd );
+
+    vec4 moments = texelFetch(global_textures[nonuniformEXT(integrated_moments_texture_index)], (frag_coord.xy), 0);
+    imageStore( global_images_2d[ history_moments_texture_index ], frag_coord, moments );
+}
+
+#endif // COMPUTE_SVGF_DOWNSAMPLE

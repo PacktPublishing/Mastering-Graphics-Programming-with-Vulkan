@@ -5,7 +5,7 @@
 
 #include "external/stb_image.h"
 
-#include "external/tracy/Tracy.hpp"
+#include "external/tracy/tracy/Tracy.hpp"
 
 namespace raptor
 {
@@ -77,7 +77,7 @@ void AsynchronousLoader::shutdown() {
 }
 
 void AsynchronousLoader::update( Allocator* scratch_allocator ) {
-    ZoneScoped
+    ZoneScoped;
 
     using namespace raptor;
 

@@ -35,7 +35,7 @@
 
 #include "external/imgui/imgui.h"
 #include "external/stb_image.h"
-#include "external/tracy/Tracy.hpp"
+#include "external/tracy/tracy/Tracy.hpp"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -729,6 +729,41 @@ int main( int argc, char** argv ) {
         frame_graph.add_resource( "shading_rate_image", FrameGraphResourceType_ShadingRate, resource_info );
     }
 
+    static bool use_shader_cache = true;
+    static cstring techniques[] = { "reflections.json", "ddgi.json", "ray_tracing.json",
+                                    "meshlet.json", "fullscreen.json", "main.json",
+                                    "pbr_lighting.json", "dof.json", "cloth.json", "debug.json",
+                                    "culling.json", "volumetric_fog.json" };
+
+    static bool changed_techniques[ ArraySize( techniques ) ];
+    // Single Gpu Technique parsing.
+    auto load_technique = [ & ]( cstring technique_name, bool& shader_changed ) {
+        temporary_name_buffer.clear();
+        cstring path = temporary_name_buffer.append_use_f( "%s/%s", RAPTOR_SHADER_FOLDER, technique_name );
+        render_resources_loader.load_gpu_technique( path, use_shader_cache, shader_changed );
+    };
+
+    auto reload_technique = [ & ]( cstring technique_name, bool& shader_changed ) {
+        temporary_name_buffer.clear();
+        cstring path = temporary_name_buffer.append_use_f( "%s/%s", RAPTOR_SHADER_FOLDER, technique_name );
+        render_resources_loader.reload_gpu_technique( path, use_shader_cache, shader_changed );
+    };
+
+    // Gpu Technique collection parsing
+    auto load_all_techniques = [ & ]() {
+        const sizet num_techniques = ArraySize( techniques );
+        for ( sizet t = 0; t < num_techniques; ++t ) {
+            load_technique( techniques[ t ], changed_techniques[ t ] );
+        }
+    };
+
+    auto reload_all_techniques = [ & ]() {
+        const sizet num_techniques = ArraySize( techniques );
+        for ( sizet t = 0; t < num_techniques; ++t ) {
+            reload_technique( techniques[ t ], changed_techniques[ t ] );
+        }
+    };
+
     TextureResource* dither_texture = nullptr;
     TextureResource* blue_noise_128_rg_texture = nullptr;
     SamplerHandle repeat_sampler, repeat_nearest_sampler;
@@ -786,23 +821,8 @@ int main( int argc, char** argv ) {
 
         scene->blue_noise_128_rg_texture_index = blue_noise_128_rg_texture->handle.index;
 
-        // Parse techniques
-        GpuTechniqueCreation gtc;
-        const bool use_shader_cache = true;
-        auto parse_technique = [&]( cstring technique_name ) {
-            temporary_name_buffer.clear();
-            cstring path = temporary_name_buffer.append_use_f( "%s/%s", RAPTOR_SHADER_FOLDER, technique_name );
-            render_resources_loader.load_gpu_technique( path, use_shader_cache );
-        };
-
-        cstring techniques[] = { "reflections.json", "ddgi.json", "ray_tracing.json", "meshlet.json", "fullscreen.json", "main.json",
-                                 "pbr_lighting.json", "dof.json", "cloth.json", "debug.json",
-                                 "culling.json", "volumetric_fog.json"};
-
-        const sizet num_techniques = ArraySize( techniques );
-        for ( sizet t = 0; t < num_techniques; ++t ) {
-            parse_technique( techniques[ t ] );
-        }
+        // Finally parse all techniques
+        load_all_techniques();
     }
 
     // NOTE(marco): build AS before preparing draws
@@ -976,8 +996,18 @@ int main( int argc, char** argv ) {
         scene->cubeface_flip[ i ] = false;
     }
 
+    u32 texture_to_debug = 127;
+    Array<u32> texture_indices;
+    texture_indices.init( allocator, gpu.textures.pool_size, gpu.textures.pool_size );
+
+    Array<cstring> texture_names;
+    texture_names.init( allocator, gpu.textures.pool_size, gpu.textures.pool_size );
+
+    StringBuffer texture_names_pool;
+    texture_names_pool.init( rkilo( 8 ), allocator );
+
     while ( !window.requested_exit ) {
-        ZoneScopedN("RenderLoop")
+        ZoneScopedN("RenderLoop");
 
         // New frame
         if ( !window.minimized ) {
@@ -1089,6 +1119,11 @@ int main( int argc, char** argv ) {
                 ImGui::InputFloat3( "Camera position", game_camera.camera.position.raw );
                 ImGui::InputFloat3( "Camera target movement", game_camera.target_movement.raw );
                 ImGui::Separator();
+                if ( ImGui::Button( "Reload Shaders" ) ) {
+                    reload_all_techniques();
+
+                    frame_graph.reload_shaders( *scene, allocator, &scratch_allocator );
+                }
                 ImGui::SliderFloat( "Force Roughness", &scene->forced_roughness, -1, 1 );
                 ImGui::SliderFloat( "Force Metalness", &scene->forced_metalness, -1, 1 );
                 if ( ImGui::CollapsingHeader( "Physics" ) ) {
@@ -1273,6 +1308,13 @@ int main( int argc, char** argv ) {
                     ImGui::Checkbox( "Debug border type (corner, row, column)", &scene->gi_debug_border_type );
                     ImGui::Checkbox( "Debug border source pixels", &scene->gi_debug_border_source );
                 }
+                if ( ImGui::CollapsingHeader( "Raytraced Reflections" ) ) {
+                    ImGui::SliderFloat( "Temporal Depth Difference", &scene->rt_temporal_depth_difference, 0.0f, 20.0f );
+                    ImGui::SliderFloat( "Temporal Normal Difference", &scene->rt_temporal_normal_difference, 0.0f, 20.0f );
+                    ImGui::SliderFloat( "Wavelet Sigma L", &scene->rt_wavelet_sigma_l, 0.0f, 20.0f );
+                    ImGui::SliderFloat( "Wavelet Sigma N", &scene->rt_wavelet_sigma_n, 0.001f, 200.0f );
+                    ImGui::SliderFloat( "Wavelet Sigma Z", &scene->rt_wavelet_sigma_z, 0.0f, 1.0f );
+                }
                 ImGui::Separator();
 
                 ImGui::Checkbox( "Show Debug GPU Draws", &scene->show_debug_gpu_draws );
@@ -1341,10 +1383,47 @@ int main( int argc, char** argv ) {
 
                 frame_graph.debug_ui();
 
-                static u32 texture_to_debug = 116;
+                u32 max_textures = gpu.textures.pool_size;
+                u32 active_texture_count = 0;
+                u32 active_texture_index = 0;
+                texture_names_pool.clear();
+                for ( u32 t = 0; t < max_textures; ++t ) {
+                    Texture* texture = gpu.access_texture( TextureHandle{ t } );
+                    if ( texture != nullptr && texture->name != nullptr ) {
+                        texture_names[ active_texture_count ] = texture_names_pool.append_use_f( "%s (%d)", texture->name, t );
+                        texture_indices[ active_texture_count ] = t;
+
+                        if ( t == texture_to_debug ) {
+                            active_texture_index = active_texture_count;
+                        }
+
+                        ++active_texture_count;
+                    }
+                }
+
                 ImVec2 window_size = ImGui::GetWindowSize();
                 window_size.y += 50;
-                ImGui::InputScalar( "Texture ID", ImGuiDataType_U32, &texture_to_debug);
+
+                cstring combo_preview_value = texture_names[ active_texture_index ];
+                if (ImGui::BeginCombo("Texture ID", combo_preview_value))
+                {
+                    for ( u32 t = 0; t < active_texture_count; ++t ) {
+                        cstring texture_name = texture_names[ t ];
+                        if ( strlen( texture_name ) == 0 ) {
+                            continue;
+                        }
+
+                        const bool is_selected = ( texture_to_debug == texture_indices[ t ] );
+                        if ( ImGui::Selectable( texture_name, is_selected ) ) {
+                            texture_to_debug = texture_indices[ t ];
+                        }
+
+                        if ( is_selected )
+                            ImGui::SetItemDefaultFocus();
+                    }
+                    ImGui::EndCombo();
+                }
+
                 static i32 face_to = 0;
                 ImGui::SliderInt( "Face", &face_to, 0, 5 );
                 scene->cubemap_debug_face_index = ( u32 )face_to;
@@ -1479,6 +1558,7 @@ int main( int argc, char** argv ) {
                 gpu_lighting_data->debug_modes = (u32)lighting_debug_modes;
                 gpu_lighting_data->debug_texture_index = scene->lighting_debug_texture_index;
                 gpu_lighting_data->gi_intensity = scene->gi_intensity;
+                gpu_lighting_data->brdf_lut_texture_index = scene->brdf_lut_texture.index;
 
                 FrameGraphResource* resource = frame_graph.get_resource( "shadow_visibility" );
                 if ( resource ) {
@@ -1568,6 +1648,10 @@ int main( int argc, char** argv ) {
         FrameMark;
     }
 
+    texture_indices.shutdown();
+    texture_names.shutdown();
+    texture_names_pool.shutdown();
+
     run_pinned_task.execute = false;
     async_load_task.execute = false;
 
@@ -1576,6 +1660,14 @@ int main( int argc, char** argv ) {
     vkDeviceWaitIdle( gpu.vulkan_device );
 
     async_loader.shutdown();
+
+    // Destroy resources built here.
+    gpu.destroy_buffer( scene->blas_buffer );
+    gpu.vkDestroyAccelerationStructureKHR( gpu.vulkan_device, scene->blas, gpu.vulkan_allocation_callbacks );
+    gpu.destroy_buffer( scene->tlas_buffer );
+    gpu.vkDestroyAccelerationStructureKHR( gpu.vulkan_device, scene->tlas, gpu.vulkan_allocation_callbacks );
+    gpu.destroy_sampler( repeat_nearest_sampler );
+    gpu.destroy_sampler( repeat_sampler );
 
     imgui->shutdown();
 

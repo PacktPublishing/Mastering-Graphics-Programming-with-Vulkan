@@ -303,7 +303,7 @@ in taskNV block
     uint meshlet_indices[32];
 };
 
-layout (location = 0) out vec2 vTexcoord0[];
+layout (location = 0) out vec3 vTexcoord0_W[];
 layout (location = 1) out vec4 vNormal_BiTanX[];
 layout (location = 2) out vec4 vTangent_BiTanY[];
 layout (location = 3) out vec4 vPosition_BiTanZ[];
@@ -380,12 +380,12 @@ void main()
             vPosition_BiTanZ[ i ].w = bitangent.z;
         }
 
-        vTexcoord0[i] = vec2(vertex_data[vi].tu, vertex_data[vi].tv);
-
         gl_MeshVerticesNV[ i ].gl_Position = view_projection * (model * vec4(position, 1));
 
         vec4 worldPosition = model * vec4(position, 1.0);
         vPosition_BiTanZ[ i ].xyz = worldPosition.xyz / worldPosition.w;
+
+        vTexcoord0_W[i] = vec3( vertex_data[vi].tu, vertex_data[vi].tv, worldPosition.w );
 
         mesh_draw_index[ i ] = meshlets[global_meshlet_index].mesh_index;
 
@@ -567,7 +567,7 @@ void main()
 
 #if defined(FRAGMENT_GBUFFER_CULLING) || defined(FRAGMENT_MESH) || defined(FRAGMENT_EMULATION_GBUFFER_CULLING)
 
-layout (location = 0) in vec2 vTexcoord0;
+layout (location = 0) in vec3 vTexcoord0_W;
 layout (location = 1) in vec4 vNormal_BiTanX;
 layout (location = 2) in vec4 vTangent_BiTanY;
 layout (location = 3) in vec4 vPosition_BiTanZ;
@@ -582,13 +582,14 @@ layout (location = 1) out vec2 normal_out;
 layout (location = 2) out vec4 occlusion_roughness_metalness_out;
 layout (location = 3) out vec4 emissive_out;
 layout (location = 4) out uint mesh_id;
-layout (location = 5) out vec2 depth_normal_dd;
+layout (location = 5) out vec2 depth_normal_fwidth;
+layout (location = 6) out vec2 linear_z_dd;
 
 void main() {
     MeshDraw mesh_draw = mesh_draws[mesh_draw_index];
 
     // Diffuse color
-    vec4 base_colour = compute_diffuse_color( mesh_draw.base_color_factor, mesh_draw.textures.x, vTexcoord0 );
+    vec4 base_colour = compute_diffuse_color( mesh_draw.base_color_factor, mesh_draw.textures.x, vTexcoord0_W.xy );
 
     const uint flags = mesh_draw.flags;
 
@@ -607,9 +608,9 @@ void main() {
     vec3 tangent = normalize(vTangent_BiTanY.xyz);
     vec3 bitangent = normalize(vec3(vNormal_BiTanX.w, vTangent_BiTanY.w, vPosition_BiTanZ.w));
 
-    calculate_geometric_TBN( normal, tangent, bitangent, vTexcoord0.xy, world_position, flags );
+    calculate_geometric_TBN( normal, tangent, bitangent, vTexcoord0_W.xy, world_position, flags );
 
-    normal = apply_pixel_normal( mesh_draw.textures.z, vTexcoord0.xy, normal, tangent, bitangent );
+    normal = apply_pixel_normal( mesh_draw.textures.z, vTexcoord0_W.xy, normal, tangent, bitangent );
 
     bool double_sided = ( mesh_draw.flags & DrawFlags_DoubleSided ) != 0;
 
@@ -621,13 +622,17 @@ void main() {
 
     // PBR Parameters
     occlusion_roughness_metalness_out.rgb = calculate_pbr_parameters( mesh_draw.metallic_roughness_occlusion_factor.x, mesh_draw.metallic_roughness_occlusion_factor.y,
-                                                                      mesh_draw.textures.y, mesh_draw.metallic_roughness_occlusion_factor.z, mesh_draw.textures.w, vTexcoord0.xy );
+                                                                      mesh_draw.textures.y, mesh_draw.metallic_roughness_occlusion_factor.z, mesh_draw.textures.w, vTexcoord0_W.xy );
 
-    emissive_out = vec4( calculate_emissive(mesh_draw.emissive.rgb, uint(mesh_draw.emissive.w), vTexcoord0.xy ), 1.0 );
+    emissive_out = vec4( calculate_emissive(mesh_draw.emissive.rgb, uint(mesh_draw.emissive.w), vTexcoord0_W.xy ), 1.0 );
 
     mesh_id = mesh_draw_index;
 
-    depth_normal_dd = vec2( length( fwidth( world_position ) ), length( fwidth( normal ) ) );
+    depth_normal_fwidth = vec2( length( fwidth( world_position ) ), length( fwidth( normal ) ) );
+
+    // TODO(marco): this gives us the wrong z? Save this in the history?
+    float linear_z = world_position.z * vTexcoord0_W.z;
+    linear_z_dd = vec2( linear_z, max( abs( dFdx( linear_z ) ), abs( dFdy( linear_z ) ) ) );
 }
 
 #endif // FRAGMENT
@@ -635,7 +640,7 @@ void main() {
 
 #if defined(FRAGMENT_TRANSPARENT_NO_CULL)
 
-layout (location = 0) in vec2 vTexcoord0;
+layout (location = 0) in vec2 vTexcoord0_W;
 layout (location = 1) in vec4 vNormal_BiTanX;
 layout (location = 2) in vec4 vTangent_BiTanY;
 layout (location = 3) in vec4 vPosition_BiTanZ;
@@ -652,7 +657,7 @@ void main() {
     uint flags = mesh_draw.flags;
 
     // Diffuse color
-    vec4 base_colour = compute_diffuse_color_alpha( mesh_draw.base_color_factor, mesh_draw.textures.x, vTexcoord0 );
+    vec4 base_colour = compute_diffuse_color_alpha( mesh_draw.base_color_factor, mesh_draw.textures.x, vTexcoord0_W.xy );
 
     apply_alpha_discards( flags, base_colour.a, mesh_draw.alpha_cutoff );
 
@@ -661,14 +666,14 @@ void main() {
     vec3 tangent = normalize(vTangent_BiTanY.xyz);
     vec3 bitangent = normalize(vec3(vNormal_BiTanX.w, vTangent_BiTanY.w, vPosition_BiTanZ.w));
 
-    calculate_geometric_TBN( normal, tangent, bitangent, vTexcoord0.xy, world_position, flags );
+    calculate_geometric_TBN( normal, tangent, bitangent, vTexcoord0_W.xy, world_position, flags );
     // Pixel normals
-    normal = apply_pixel_normal( mesh_draw.textures.z, vTexcoord0.xy, normal, tangent, bitangent );
+    normal = apply_pixel_normal( mesh_draw.textures.z, vTexcoord0_W.xy, normal, tangent, bitangent );
 
     vec3 orm = calculate_pbr_parameters( mesh_draw.metallic_roughness_occlusion_factor.x, mesh_draw.metallic_roughness_occlusion_factor.y,
-                                                                      mesh_draw.textures.y, mesh_draw.metallic_roughness_occlusion_factor.z, mesh_draw.textures.w, vTexcoord0.xy );
+                                                                      mesh_draw.textures.y, mesh_draw.metallic_roughness_occlusion_factor.z, mesh_draw.textures.w, vTexcoord0_W.xy );
 
-    vec3 emissive_colour = calculate_emissive(mesh_draw.emissive.rgb, uint(mesh_draw.emissive.w), vTexcoord0.xy );
+    vec3 emissive_colour = calculate_emissive(mesh_draw.emissive.rgb, uint(mesh_draw.emissive.w), vTexcoord0_W.xy );
 
 #if DEBUG
     color_out = vColour;
@@ -1224,7 +1229,7 @@ layout(set = MATERIAL_SET, binding = 9) readonly buffer MeshletInstances
     uvec2           meshlet_instances[];
 };
 
-layout (location = 0) out vec2 vTexcoord0;
+layout (location = 0) out vec3 vTexcoord0_W;
 layout (location = 1) out vec4 vNormal_BiTanX;
 layout (location = 2) out vec4 vTangent_BiTanY;
 layout (location = 3) out vec4 vPosition_BiTanZ;
@@ -1295,10 +1300,10 @@ void main() {
         vPosition_BiTanZ.w = bitangent.z;
     }
 
-    vTexcoord0 = vec2(vertex_data[vi].tu, vertex_data[vi].tv);
-
     vec4 worldPosition = model * vec4(position, 1.0);
     vPosition_BiTanZ.xyz = worldPosition.xyz / worldPosition.w;
+
+    vTexcoord0_W = vec3(vertex_data[vi].tu, vertex_data[vi].tv, worldPosition.w);
 
     mesh_draw_index = meshlets[meshlet_index].mesh_index;
 

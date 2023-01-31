@@ -278,7 +278,7 @@ void main() {
                         
                         // TODO: add shadows
                         vec3 shadow_position_to_light = world_position - light_position;
-                        const float current_depth = vector_to_depth_value(shadow_position_to_light, light_radius);
+                        const float current_depth = vector_to_depth_value(shadow_position_to_light, light_radius, point_light.rcp_n_minus_f);
                         const float bias = 0.0001f;
                         const uint shadow_light_index = global_light_index;
 

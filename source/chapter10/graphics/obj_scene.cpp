@@ -13,7 +13,7 @@
 #include "external/cglm/struct/affine.h"
 #include "external/cglm/struct/mat4.h"
 #include "external/cglm/struct/vec3.h"
-#include "external/tracy/Tracy.hpp"
+#include "external/tracy/tracy/Tracy.hpp"
 
 #include <assimp/cimport.h>
 #include <assimp/scene.h>
@@ -666,7 +666,7 @@ void ObjScene::shutdown( Renderer* renderer ) {
 }
 
 void ObjScene::prepare_draws( Renderer* renderer, StackAllocator* scratch_allocator, SceneGraph* scene_graph_ ) {
-    ZoneScoped
+    ZoneScoped;
 
     using namespace raptor;
 

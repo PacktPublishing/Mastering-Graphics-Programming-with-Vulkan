@@ -38,8 +38,6 @@ struct CommandBuffer {
     void                            dispatch( u32 group_x, u32 group_y, u32 group_z );
     void                            dispatch_indirect( BufferHandle handle, u32 offset );
 
-    void                            barrier( const ExecutionBarrier& barrier );
-
     void                            fill_buffer( BufferHandle buffer, u32 offset, u32 size, u32 data );
 
     void                            push_marker( const char* name );
@@ -52,7 +50,7 @@ struct CommandBuffer {
     VkDescriptorPool                vk_descriptor_pool;
     ResourcePool                    descriptor_sets;
 
-    GpuDevice*                      device;
+    GpuDevice*                      gpu_device;
 
     VkDescriptorSet                 vk_descriptor_sets[16];
 

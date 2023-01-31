@@ -16,7 +16,7 @@
 
 #include "external/imgui/imgui.h"
 
-#include "external/tracy/Tracy.hpp"
+#include "external/tracy/tracy/Tracy.hpp"
 
 #include "foundation/file.hpp"
 #include "foundation/gltf.hpp"

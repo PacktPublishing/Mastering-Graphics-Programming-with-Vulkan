@@ -161,7 +161,7 @@ void main() {
             const float current_depth = length(position_to_light) / light.radius;
             const float closest_depth = texture(global_textures_cubemaps[nonuniformEXT(cubemap_shadows_index)], vec3(position_to_light)).r;
 
-            imageStore(global_images_2d[debug_texture_index], pos.xy, vec4(current_depth, closest_depth, vector_to_depth_value(position_to_light, light.radius), 1));
+            imageStore(global_images_2d[debug_texture_index], pos.xy, vec4(current_depth, closest_depth, vector_to_depth_value(position_to_light, light.radius, light.rcp_n_minus_f), 1));
         }
         else if (debug_modes == 3) {
 
@@ -188,7 +188,7 @@ void main() {
             Light light = lights[ 0 ];
             vec3 position_to_light = pixel_world_position - light.world_position;
             const float current_depth = length(position_to_light) / light.radius;
-            float current_depth2 = vector_to_depth_value(position_to_light, light.radius);
+            float current_depth2 = vector_to_depth_value(position_to_light, light.radius, light.rcp_n_minus_f);
             const float closest_depth = texture(global_textures_cubemaps[nonuniformEXT(cubemap_shadows_index)], vec3(position_to_light)).r;
 
             imageStore(global_images_2d[debug_texture_index], pos.xy, vec4(current_depth, current_depth2, closest_depth, 1));
@@ -202,7 +202,7 @@ void main() {
             Light light = lights[ 0 ];
             vec3 position_to_light = light.world_position - pixel_world_position;
             const float current_depth = length(position_to_light) / light.radius;
-            float current_depth2 = vector_to_depth_value(position_to_light, light.radius);
+            float current_depth2 = vector_to_depth_value(position_to_light, light.radius, light.rcp_n_minus_f);
             const float closest_depth = texture(global_textures_cubemaps[nonuniformEXT(cubemap_shadows_index)], vec3(position_to_light)).r;
 
             imageStore(global_images_2d[debug_texture_index], pos.xy, vec4(current_depth, current_depth2, closest_depth, 1));
@@ -269,8 +269,8 @@ void main() {
 layout ( local_size_x = 8, local_size_y = 8, local_size_z = 1 ) in;
 
 void main() {
-    ivec2 iresolution = ivec2( resolution ) - 1;
-    if ( gl_GlobalInvocationID.x > iresolution.x || gl_GlobalInvocationID.y > iresolution.y )
+    ivec2 iresolution = ivec2( resolution );
+    if ( gl_GlobalInvocationID.x >= iresolution.x || gl_GlobalInvocationID.y >= iresolution.y )
         return;
 
     ivec3 tex_coord = ivec3( gl_GlobalInvocationID.xyz );
@@ -315,10 +315,9 @@ float max_filter( ivec3 index ) {
 }
 
 float read_variation_value( ivec3 index ) {
-    ivec2 iresolution = ivec2( resolution ) - 1;
-    ivec2 xy =  clamp( index.xy, ivec2( 0 ), iresolution );
+    bool valid_index = ( any( lessThan( index.xy, ivec2( 0 ) ) ) || any( greaterThanEqual( index.xy, ivec2( resolution ) ) ) );
 
-    float v = texelFetch( global_textures_3d[ variation_texture_index ], ivec3( xy, index.z ), 0 ).r;
+    float v = valid_index ? texelFetch( global_textures_3d[ variation_texture_index ], index, 0 ).r : 0.0;
 
     return v;
 }
@@ -341,8 +340,8 @@ float tent_kernel[13][13] = {
 };
 
 void main() {
-    ivec2 iresolution = ivec2( resolution ) - 1;
-    if ( gl_GlobalInvocationID.x > iresolution.x || gl_GlobalInvocationID.y > iresolution.y )
+    ivec2 iresolution = ivec2( resolution );
+    if ( gl_GlobalInvocationID.x >= iresolution.x || gl_GlobalInvocationID.y >= iresolution.y )
         return;
 
     ivec3 local_index = ivec3( gl_LocalInvocationID.xyz ) + ivec3( 6, 6, 0 );
@@ -408,6 +407,7 @@ void main() {
         }
     }
 
+    memoryBarrierShared();
     barrier();
 
     local_max_image_data[ local_index.y ][ local_index.x ] = max_filter( local_index );
@@ -464,6 +464,7 @@ void main() {
         }
     }
 
+    memoryBarrierShared();
     barrier();
 
     // NOTE(marco): 13x13 tent filter
@@ -508,9 +509,9 @@ void main() {
                 sample_count -= 1;
             }
 
-            bvec4 hasSampleHistory = lessThan( sample_count_history, uvec4( 1 ) );
-            bool zeroSampleHistory = all( hasSampleHistory );
-            if ( sample_count == 0 && zeroSampleHistory ) {
+            uvec4 new_sample_count_history = uvec4( sample_count, sample_count_history.x, sample_count_history.y, sample_count_history.z );
+            bool zeroSampleHistory = all( lessThan( new_sample_count_history, uvec4( 1 ) ) );
+            if ( zeroSampleHistory ) {
                 // NOTE(marco): force this frame to have at least one sample
                 sample_count = 1;
             }
@@ -548,6 +549,7 @@ void main() {
     sample_count_history.x = sample_count;
 
     memoryBarrierImage(); // NOTE(marco): we are reading and writing from the same image
+    barrier();
 
     imageStore( global_images_3d[ visibility_cache_texture_index ], global_index, last_visibility_values );
 
@@ -580,11 +582,11 @@ shared float local_image_data[ LOCAL_DATA_SIZE ][ LOCAL_DATA_SIZE ];
 shared vec3 local_normal_data[ LOCAL_DATA_SIZE ][ LOCAL_DATA_SIZE ];
 
 float visibility_temporal_filter( ivec3 index ) {
-    ivec2 iresolution = ivec2( resolution ) - 1;
+    if ( any( lessThan( index.xy, ivec2( 0 ) ) ) || any( greaterThanEqual( index.xy, ivec2( resolution ) ) ) ) {
+        return 0.0;
+    }
 
-    ivec2 xy = clamp( index.xy, ivec2( 0 ), iresolution );
-
-    vec4 last_visibility_values = texelFetch( global_textures_3d[ visibility_cache_texture_index ], ivec3( xy, index.z ), 0 );
+    vec4 last_visibility_values = texelFetch( global_textures_3d[ visibility_cache_texture_index ], index, 0 );
 
     float filtered_visibility = 0.25 * ( last_visibility_values.x + last_visibility_values.y + last_visibility_values.z + last_visibility_values.w );
 
@@ -592,18 +594,15 @@ float visibility_temporal_filter( ivec3 index ) {
 }
 
 vec3 get_normal( ivec3 index ) {
-    ivec2 iresolution = ivec2( resolution ) - 1;
+    if ( any( lessThan( index.xy, ivec2( 0 ) ) ) || any( greaterThanEqual( index.xy, ivec2( resolution ) ) ) ) {
+        return vec3( 0 );
+    }
 
-    ivec2 xy = clamp( index.xy, ivec2( 0 ), iresolution );
-
-    const float raw_depth = texelFetch( global_textures[ depth_texture_index ], xy, 0).r;
+    const float raw_depth = texelFetch( global_textures[ depth_texture_index ], index.xy, 0).r;
     if ( raw_depth == 1.0f ) {
         return vec3( 0 );
     } else {
-        const vec2 screen_uv = uv_from_pixels( xy, uint( resolution.x ), uint( resolution.y ) );
-        const vec3 pixel_world_position = world_position_from_depth( screen_uv, raw_depth, inverse_view_projection);
-
-        vec2 encoded_normal = texelFetch( global_textures[ normals_texture_index ], xy, 0).rg;
+        vec2 encoded_normal = texelFetch( global_textures[ normals_texture_index ], index.xy, 0).rg;
         vec3 normal = octahedral_decode( encoded_normal );
 
         return normal;
@@ -611,8 +610,8 @@ vec3 get_normal( ivec3 index ) {
 }
 
 void main() {
-    ivec2 iresolution = ivec2( resolution ) - 1;
-    if ( gl_GlobalInvocationID.x > iresolution.x || gl_GlobalInvocationID.y > iresolution.y )
+    ivec2 iresolution = ivec2( resolution );
+    if ( gl_GlobalInvocationID.x >= iresolution.x || gl_GlobalInvocationID.y >= iresolution.y )
         return;
 
     ivec3 local_index = ivec3( gl_LocalInvocationID.xyz ) + ivec3( 2, 2, 0 );
@@ -685,6 +684,7 @@ void main() {
         }
     }
 
+    memoryBarrierShared();
     barrier();
 
     float spatial_filtered_value = 0.0;

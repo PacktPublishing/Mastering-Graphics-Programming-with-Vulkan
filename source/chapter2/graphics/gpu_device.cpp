@@ -97,7 +97,7 @@ void CommandBufferRing::init( GpuDevice* gpu_ ) {
         check( vkAllocateCommandBuffers( gpu->vulkan_device, &cmd, &command_buffers[ i ].vk_command_buffer ) );
 
         // TODO(marco): move to have a ring per queue per thread
-        command_buffers[ i ].device = gpu;
+        command_buffers[ i ].gpu_device = gpu;
         command_buffers[ i ].init( QueueType::Enum::Graphics, 0, 0, false );
         command_buffers[ i ].handle = i;
     }
@@ -1062,6 +1062,41 @@ TextureHandle GpuDevice::create_texture( const TextureCreation& creation ) {
     return handle;
 }
 
+// helper method
+bool is_end_of_line( char c ) {
+    bool result = ( ( c == '\n' ) || ( c == '\r' ) );
+    return( result );
+}
+
+void dump_shader_code( StringBuffer& temp_string_buffer, cstring code, VkShaderStageFlagBits stage, cstring name ) {
+    rprint( "Error in creation of shader %s, stage %s. Writing shader:\n", name, to_stage_defines( stage ) );
+
+    cstring current_code = code;
+    u32 line_index = 1;
+    while ( current_code ) {
+
+        cstring end_of_line = current_code;
+        if ( !end_of_line || *end_of_line == 0 ) {
+            break;
+        }
+        while ( !is_end_of_line( *end_of_line ) ) {
+            ++end_of_line;
+        }
+        if ( *end_of_line == '\r' ) {
+            ++end_of_line;
+        }
+        if ( *end_of_line == '\n' ) {
+            ++end_of_line;
+        }
+
+        temp_string_buffer.clear();
+        char* line = temp_string_buffer.append_use_substring( current_code, 0, ( end_of_line - current_code ) );
+        rprint( "%u: %s", line_index++, line );
+
+        current_code = end_of_line;
+    }
+}
+
 VkShaderModuleCreateInfo GpuDevice::compile_shader( cstring code, u32 code_size, VkShaderStageFlagBits stage, cstring name ) {
 
     VkShaderModuleCreateInfo shader_create_info = { VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO };
@@ -1116,6 +1151,11 @@ VkShaderModuleCreateInfo GpuDevice::compile_shader( cstring code, u32 code_size,
     } else {
         // Read back SPV file.
         shader_create_info.pCode = reinterpret_cast< const u32* >( file_read_binary( final_spirv_filename, temporary_allocator, &shader_create_info.codeSize ) );
+    }
+
+    // Handling compilation error
+    if ( shader_create_info.pCode == nullptr ) {
+        dump_shader_code( temp_string_buffer, code, stage, name );
     }
 
     // Temporary files cleanup
