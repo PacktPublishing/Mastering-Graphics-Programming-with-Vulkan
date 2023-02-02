@@ -128,9 +128,9 @@ add_library(RaptorExternal
     source/external/imgui/TextEditor.cpp
     source/external/imgui/TextEditor.h
 
-    source/external/tracy/Tracy.hpp
-    source/external/tracy/TracyC.h
-    source/external/tracy/TracyVulkan.hpp
+    source/external/tracy/tracy/Tracy.hpp
+    source/external/tracy/tracy/TracyC.h
+    source/external/tracy/tracy/TracyVulkan.hpp
     source/external/tracy/TracyClient.cpp
 
     source/external/enkiTS/LockLessMultiReadPipe.h
