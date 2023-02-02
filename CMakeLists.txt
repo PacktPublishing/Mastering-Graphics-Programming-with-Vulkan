@@ -106,7 +106,7 @@ else()
         ${SDL2_INCLUDE_DIRS})
 endif()
 
-add_library(RaptorExternal
+add_library(RaptorExternal STATIC
     source/external/tlsf.c
 
     source/external/json.hpp
@@ -128,9 +128,8 @@ add_library(RaptorExternal
     source/external/imgui/TextEditor.cpp
     source/external/imgui/TextEditor.h
 
-    source/external/tracy/Tracy.hpp
-    source/external/tracy/TracyC.h
-    source/external/tracy/TracyVulkan.hpp
+    source/external/tracy/tracy/Tracy.hpp
+    source/external/tracy/tracy/TracyVulkan.hpp
     source/external/tracy/TracyClient.cpp
 
     source/external/enkiTS/LockLessMultiReadPipe.h
@@ -187,3 +186,12 @@ add_subdirectory(source/chapter3)
 add_subdirectory(source/chapter4)
 add_subdirectory(source/chapter5)
 add_subdirectory(source/chapter6)
+add_subdirectory(source/chapter7)
+add_subdirectory(source/chapter8)
+add_subdirectory(source/chapter9)
+add_subdirectory(source/chapter10)
+add_subdirectory(source/chapter11)
+add_subdirectory(source/chapter12)
+add_subdirectory(source/chapter13)
+add_subdirectory(source/chapter14)
+add_subdirectory(source/chapter15)

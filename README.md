@@ -20,19 +20,37 @@ This book covers the following exciting features:
 
 If you feel this book is for you, get your [copy](https://www.amazon.com/dp/1803244798) today!
 
-<a href="https://www.packtpub.com/?utm_source=github&utm_medium=banner&utm_campaign=GitHubBanner"><img src="https://raw.githubusercontent.com/PacktPublishing/GitHub/master/GitHub.png" 
+<a href="https://www.packtpub.com/?utm_source=github&utm_medium=banner&utm_campaign=GitHubBanner"><img src="https://raw.githubusercontent.com/PacktPublishing/GitHub/master/GitHub.png"
 alt="https://www.packtpub.com/" border="5" /></a>
 
 ## Instructions and Navigations
-All of the code is organized into folders. For example, Chapter02.
+All of the code is organized into folders. For example, chapter2.
 
-The code will look like the following:
+The code has been tested with the following software:
+- Visual Studio 2019 Community Edition 16.11.8 (Windows)
+- gcc 9 (Linux)
+- CMake 3.22.1
+- Vulkan SDK 1.2.198.1 or above
+- SDL version 2.0.18
+- assimp 5.2.2
+
+### Windows
+We provide a Visual Studio solution containing the code for all chapters, located at `project\RaptorEngine.sln`.
+
+### Linux
+Assuming you unpacked the Vulkan SDK in `~/vulkan/1.2.198.1`, you have to add the following lines to your `.bashrc` file:
 ```
 export VULKAN_SDK=~/vulkan/1.2.198.1/x86_64
 export PATH=$VULKAN_SDK/bin:$PATH
 export LD_LIBRARY_PATH=$VULKAN_SDK/lib:$LD_LIBRARY_PATH
 export VK_LAYER_PATH=$VULKAN_SDK/etc/vulkan/explicit_layer.d
 ```
+
+To generate the Make file, run the following command:
+`cmake -B build -DCMAKE_BUILD_TYPE=Debug`
+
+To build a given chapter, run the following command:
+`cmake --build build --target Chapter1 -- -j 4`
 
 **Following is what you need for this book:**
 This book is for professional graphics and game developers who want to gain in-depth knowledge about how to write a modern and performant rendering engine in Vulkan. Familiarity with basic concepts of graphics programming (i.e. matrices, vectors, etc.) and fundamental knowledge of Vulkan are required.
@@ -51,6 +69,7 @@ We also provide a PDF file that has color images of the screenshots/diagrams use
 * Vulkan Cookbook [[Packt]](https://www.packtpub.com/product/vulkan-cookbook/9781786468154?utm_source=github&utm_medium=repository&utm_campaign=9781786468154) [[Amazon]](https://www.amazon.com/dp/1786468158)
 
 ## Get to Know the Authors
-**Marco Castorina** first got familiar with Vulkan while working as a driver developer at Samsung. Later he developed a 2D and 3D renderer in Vulkan from scratch for a leading media-server company. He recently joined the games graphics performance team at AMD. In his spare time, he keeps up to date with the latest techniques in real-time graphics.
+**Marco Castorina** first got familiar with Vulkan while working as a driver developer at Samsung. Later he developed a 2D and 3D renderer in Vulkan from scratch for a leading media-server company. He recently joined the games graphics performance team at AMD. In his spare time, he keeps up to date with the latest techniques in real-time graphics. He also likes cooking and playing
+guitar.
 
 **Gabriel Sassone** is a rendering enthusiast currently working as a Principal Rendering Engineer at Multiplayer Group. Previously working for Avalanche Studios, where his first contact with Vulkan happened, where they developed the Vulkan layer for the proprietary Apex Engine and its Google Stadia Port. He previously worked at ReadyAtDawn, Codemasters, FrameStudios, and some non-gaming tech companies. His spare time is filled with music and rendering, gaming, and outdoor activities.
