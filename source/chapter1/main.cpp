@@ -80,7 +80,7 @@ int main( int argc, char** argv ) {
 
     if ( argc < 2 ) {
         printf( "Usage: chapter1 [path to glTF model]\n");
-        exit( -1 );
+        InjectDefault3DModel();
     }
 
     using namespace raptor;

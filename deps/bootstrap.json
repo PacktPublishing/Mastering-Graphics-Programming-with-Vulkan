@@ -1,0 +1,10 @@
+[
+{
+    "name": "glTF-Sample-Models",
+    "source": {
+        "type": "git",
+        "url": "https://github.com/KhronosGroup/glTF-Sample-Models",
+        "revision": "8e9a5a6ad1a2790e2333e3eb48a1ee39f9e0e31b"
+    }
+}
+]
