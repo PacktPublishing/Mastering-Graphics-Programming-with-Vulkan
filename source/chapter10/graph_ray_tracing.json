@@ -11,7 +11,7 @@
                     "type": "texture",
                     "name": "final",
                     "format": "VK_FORMAT_B8G8R8A8_UNORM",
-                    "resolution": [ 1280, 800 ],
+                    "resolution_scale": [ 1.0, 1.0 ],
                     "load_operation": "clear",
                     "clear_color":[0, 0, 0, 1]
                 }

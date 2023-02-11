@@ -12,7 +12,7 @@
                     "type": "texture",
                     "name": "final",
                     "format": "VK_FORMAT_B8G8R8A8_UNORM",
-                    "resolution": [ 1280, 800 ],
+                    "resolution_scale": [ 1.0, 1.0 ],
                     "load_operation": "clear",
                     "clear_color":[0, 0, 0, 1]
                 }
@@ -74,7 +74,7 @@
                     "type": "attachment",
                     "name": "gbuffer_colour",
                     "format": "VK_FORMAT_B8G8R8A8_UNORM",
-                    "resolution": [ 1280, 800 ],
+                    "resolution_scale": [ 1.0, 1.0 ],
                     "load_operation": "clear",
                     "clear_color":[0.529, 0.807, 0.921, 1]
                 },
@@ -82,7 +82,7 @@
                     "type": "attachment",
                     "name": "gbuffer_normals",
                     "format": "VK_FORMAT_R16G16_SFLOAT",
-                    "resolution": [ 1280, 800 ],
+                    "resolution_scale": [ 1.0, 1.0 ],
                     "load_operation": "clear",
                     "clear_color":[0.0, 0.0, 0.0, 0.0]
                 },
@@ -90,7 +90,7 @@
                     "type": "attachment",
                     "name": "gbuffer_occlusion_roughness_metalness",
                     "format": "VK_FORMAT_B10G11R11_UFLOAT_PACK32",
-                    "resolution": [ 1280, 800 ],
+                    "resolution_scale": [ 1.0, 1.0 ],
                     "load_operation": "clear",
                     "clear_color":[0.0, 0.0, 0.0, 0.0]
                 },
@@ -98,7 +98,7 @@
                     "type": "attachment",
                     "name": "gbuffer_emissive",
                     "format": "VK_FORMAT_B10G11R11_UFLOAT_PACK32",
-                    "resolution": [ 1280, 800 ],
+                    "resolution_scale": [ 1.0, 1.0 ],
                     "load_operation": "clear",
                     "clear_color":[0.0, 0.0, 0.0, 0.0]
                 },
@@ -106,7 +106,7 @@
                     "type": "attachment",
                     "name": "mesh_id",
                     "format": "VK_FORMAT_R32_UINT",
-                    "resolution": [ 1280, 800 ],
+                    "resolution_scale": [ 1.0, 1.0 ],
                     "load_operation": "clear",
                     "clear_color": [0.0, 0.0, 0.0, 0.0]
                 },
@@ -114,7 +114,7 @@
                     "type": "attachment",
                     "name": "depth_normal_dd",
                     "format": "VK_FORMAT_R16G16_SFLOAT",
-                    "resolution": [ 1280, 800 ],
+                    "resolution_scale": [ 1.0, 1.0 ],
                     "load_operation": "clear",
                     "clear_color":[0.0, 0.0, 0.0, 0.0]
                 },
@@ -122,7 +122,7 @@
                     "type": "attachment",
                     "name": "depth",
                     "format": "VK_FORMAT_D32_SFLOAT",
-                    "resolution": [ 1280, 800 ],
+                    "resolution_scale": [ 1.0, 1.0 ],
                     "load_operation": "clear",
                     "clear_depth" : 1.0,
                     "clear_stencil" : 0
@@ -255,7 +255,7 @@
                     "type": "attachment",
                     "name": "final",
                     "format": "VK_FORMAT_B8G8R8A8_UNORM",
-                    "resolution": [ 1280, 800 ],
+                    "resolution_scale": [ 1.0, 1.0 ],
                     "load_operation": "clear",
                     "clear_color":[0, 0, 0, 1]
                 }
@@ -303,6 +303,10 @@
                     "name": "shadow_visibility"
                 },
                 {
+                    "type": "texture",
+                    "name": "point_shadows_depth"
+                },
+                {
                     "type": "shading_rate",
                     "name": "shading_rate_image"
                 },
@@ -323,7 +327,7 @@
                     "type": "attachment",
                     "name": "final",
                     "format": "VK_FORMAT_B8G8R8A8_UNORM",
-                    "resolution": [ 1280, 800 ],
+                    "resolution_scale": [ 1.0, 1.0 ],
                     "load_operation": "clear",
                     "clear_color":[0, 0, 0, 1]
                 }
@@ -345,7 +349,7 @@
                     "type": "attachment",
                     "name": "depth",
                     "format": "VK_FORMAT_D32_SFLOAT",
-                    "resolution": [ 1280, 800 ],
+                    "resolution_scale": [ 1.0, 1.0 ],
                     "load_operation": "clear",
                     "clear_depth" : 1.0,
                     "clear_stencil" : 0
@@ -361,7 +365,7 @@
                 }
             ],
             "name": "point_shadows_pass",
-            "enabled": false,
+            "enabled": true,
             "type": "compute",
             "outputs":
             [
@@ -441,7 +445,7 @@
                     "type": "attachment",
                     "name": "motion_vectors",
                     "format": "VK_FORMAT_R16G16_SFLOAT",
-                    "resolution": [ 1280, 800 ],
+                    "resolution_scale": [ 1.0, 1.0 ],
                     "load_operation": "clear",
                     "clear_color":[0.0, 0.0, 0.0, 0.0]
                 },
@@ -449,7 +453,7 @@
                     "type": "attachment",
                     "name": "visibility_motion_vectors",
                     "format": "VK_FORMAT_R16G16_SFLOAT",
-                    "resolution": [ 1280, 800 ],
+                    "resolution_scale": [ 1.0, 1.0 ],
                     "load_operation": "clear",
                     "clear_color":[0.0, 0.0, 0.0, 0.0]
                 }

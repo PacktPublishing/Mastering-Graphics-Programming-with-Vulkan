@@ -12,8 +12,8 @@ layout ( std140, set = MATERIAL_SET, binding = 30 ) uniform ShadowVisibilityCons
     uint filetered_variation_texture;
 
     uint frame_index; // NOTE(marco): [0-3]
-    uint pad_000_svc;
-    uint pad_001_svc;
+    float resolution_scale;
+    float resolution_scale_rcp;
     uint pad_002_svc;
 };
 
@@ -75,7 +75,7 @@ void main() {
         uvec2 position = uvec2(gl_FragCoord.x - 0.5, gl_FragCoord.y - 0.5);
         position.y = uint( resolution.y ) - position.y;
 
-        color = calculate_lighting( base_colour, orm, normal, emissive, pixel_world_position, position, screen_uv );
+        color = calculate_lighting( base_colour, orm, normal, emissive, pixel_world_position, position, screen_uv, false );
     }
 
     color.rgb = apply_volumetric_fog( screen_uv, raw_depth, color.rgb );
@@ -139,7 +139,7 @@ void main() {
 
         uvec2 position = gl_GlobalInvocationID.xy;
 
-        color = calculate_lighting( base_colour, orm, normal, emissive, pixel_world_position, position, screen_uv );
+        color = calculate_lighting( base_colour, orm, normal, emissive, pixel_world_position, position, screen_uv, false );
     }
 
     color.rgb = apply_volumetric_fog( screen_uv, raw_depth, color.rgb );
@@ -206,18 +206,12 @@ void main() {
             const float closest_depth = texture(global_textures_cubemaps[nonuniformEXT(cubemap_shadows_index)], vec3(position_to_light)).r;
 
             imageStore(global_images_2d[debug_texture_index], pos.xy, vec4(current_depth, current_depth2, closest_depth, 1));
-
-            //color.rgb = current_depth2 < closest_depth ? vec3(1) : vec3(0);
         }
         else if ( debug_modes == 7 ) {
             const vec3 pixel_world_position = world_position_from_depth(screen_uv, raw_depth, inverse_view_projection);
 
             Light light = lights[ 0 ];
             const vec3 position_to_light = pixel_world_position - light.world_position;
-
-            // float3 shadowPos = surfacePos - lightPos;
-            // float3 shadowDistance = length(shadowPos);
-            // float3 shadowDir = normalize(shadowPos);
 
             // // Doing the max of the components tells us 2 things: which cubemap face we're going to use,
             // // and also what the projected distance is onto the major axis for that face.
@@ -235,17 +229,8 @@ void main() {
 
             const float closest_depth = texture(global_textures_cubemaps[nonuniformEXT(cubemap_shadows_index)], vec3(position_to_light)).r;
 
-            //color.rgb = dbDistance < closest_depth ? vec3(1) : vec3(0);
             imageStore(global_images_2d[debug_texture_index], pos.xy, vec4(dbDistance, closest_depth, 0, 1));
-            // // Compute the project depth value that matches what would be stored in the depth buffer
-            // // for the current cube map face. "ShadowProjection" is the projection matrix used when
-            // // rendering to the shadow map.
-            // float a = ShadowProjection._33;
-            // float b = ShadowProjection._43;
-            // float z = projectedDistance * a + b;
-            // float dbDistance = z / projectedDistance;
-
-            // return ShadowMap.SampleCmpLevelZero(PCFSampler, shadowDir, dbDistance - Bias);
+            
         }
         else if (debug_modes == 8) {
 
@@ -269,8 +254,8 @@ void main() {
 layout ( local_size_x = 8, local_size_y = 8, local_size_z = 1 ) in;
 
 void main() {
-    ivec2 iresolution = ivec2( resolution ) - 1;
-    if ( gl_GlobalInvocationID.x > iresolution.x || gl_GlobalInvocationID.y > iresolution.y )
+    ivec2 iresolution = ivec2( resolution * 0.5 );
+    if ( gl_GlobalInvocationID.x >= iresolution.x || gl_GlobalInvocationID.y >= iresolution.y )
         return;
 
     ivec3 tex_coord = ivec3( gl_GlobalInvocationID.xyz );
@@ -315,10 +300,9 @@ float max_filter( ivec3 index ) {
 }
 
 float read_variation_value( ivec3 index ) {
-    ivec2 iresolution = ivec2( resolution ) - 1;
-    ivec2 xy =  clamp( index.xy, ivec2( 0 ), iresolution );
+    bool valid_index = ( any( lessThan( index.xy, ivec2( 0 ) ) ) || any( greaterThanEqual( index.xy, ivec2( resolution * 0.5 ) ) ) );
 
-    float v = texelFetch( global_textures_3d[ variation_texture_index ], ivec3( xy, index.z ), 0 ).r;
+    float v = valid_index ? texelFetch( global_textures_3d[ variation_texture_index ], index, 0 ).r : 0.0;
 
     return v;
 }
@@ -341,8 +325,8 @@ float tent_kernel[13][13] = {
 };
 
 void main() {
-    ivec2 iresolution = ivec2( resolution ) - 1;
-    if ( gl_GlobalInvocationID.x > iresolution.x || gl_GlobalInvocationID.y > iresolution.y )
+    ivec2 iresolution = ivec2( resolution * 0.5 );
+    if ( gl_GlobalInvocationID.x >= iresolution.x || gl_GlobalInvocationID.y >= iresolution.y )
         return;
 
     ivec3 local_index = ivec3( gl_LocalInvocationID.xyz ) + ivec3( 6, 6, 0 );
@@ -408,6 +392,7 @@ void main() {
         }
     }
 
+    memoryBarrierShared();
     barrier();
 
     local_max_image_data[ local_index.y ][ local_index.x ] = max_filter( local_index );
@@ -464,6 +449,7 @@ void main() {
         }
     }
 
+    memoryBarrierShared();
     barrier();
 
     // NOTE(marco): 13x13 tent filter
@@ -488,9 +474,11 @@ void main() {
     last_variation_values.y = last_variation_values.x;
     last_variation_values.x = texelFetch( global_textures_3d[ variation_texture_index ], global_index, 0 ).r;
 
-    float motion_vectors_value = texelFetch( global_textures[ motion_vectors_texture_index ], global_index.xy, 0 ).r;
+    ivec2 scaled_xy = ivec2( global_index.xy * resolution_scale_rcp );
+
+    float motion_vectors_value = texelFetch( global_textures[ motion_vectors_texture_index ], scaled_xy.xy, 0 ).r;
     uvec4 sample_count_history = texelFetch( global_utextures_3d[ samples_count_cache_texture_index ], global_index, 0 );
-    const float raw_depth = texelFetch( global_textures[ depth_texture_index ], global_index.xy, 0).r;
+    const float raw_depth = texelFetch( global_textures[ depth_texture_index ], scaled_xy.xy, 0).r;
 
     uint sample_count = MAX_SHADOW_VISIBILITY_SAMPLE_COUNT;
     if ( motion_vectors_value.r != -1.0 ) {
@@ -508,24 +496,40 @@ void main() {
                 sample_count -= 1;
             }
 
-            bvec4 hasSampleHistory = lessThan( sample_count_history, uvec4( 1 ) );
-            bool zeroSampleHistory = all( hasSampleHistory );
-            if ( sample_count == 0 && zeroSampleHistory ) {
+#if 0
+            // NOTE(marco): this is the implementation described in the book. If we don't
+            // sample for one frame, the output is very noisy and blocky. Always forcing at
+            // least one sample reduces this issue. Needs further investigation.
+            uvec4 new_sample_count_history = uvec4( sample_count, sample_count_history.x, sample_count_history.y, sample_count_history.z );
+            bool zeroSampleHistory = all( lessThan( new_sample_count_history, uvec4( 1 ) ) );
+            if ( zeroSampleHistory ) {
                 // NOTE(marco): force this frame to have at least one sample
                 sample_count = 1;
             }
+#else
+            if ( sample_count <= 0 ) {
+                sample_count = 1;
+            }
+#endif
         }
     }
 
     float visibility = 0.0;
     if ( sample_count > 0 ) {
-        const vec2 screen_uv = uv_from_pixels( global_index.xy, uint( resolution.x ), uint( resolution.y ) );
+        const vec2 screen_uv = uv_nearest( global_index.xy, resolution * resolution_scale );
         const vec3 pixel_world_position = world_position_from_depth( screen_uv, raw_depth, inverse_view_projection);
 
-        vec2 encoded_normal = texelFetch( global_textures[ normals_texture_index ], global_index.xy, 0).rg;
+        vec2 encoded_normal = texelFetch( global_textures[ normals_texture_index ], scaled_xy, 0).rg;
         vec3 normal = octahedral_decode( encoded_normal );
 
-        visibility = get_light_visibility( gl_GlobalInvocationID.z, sample_count, pixel_world_position, normal, frame_index );
+        // Point light
+        if ( is_raytrace_shadow_point_light() ) {
+            // NOTE(marco): this is the code in the book
+            visibility = get_point_light_visibility( gl_GlobalInvocationID.z, sample_count, pixel_world_position, normal, frame_index );
+        }
+        else {
+            visibility = get_directional_light_visibility( raytraced_shadow_light_position, sample_count, pixel_world_position, normal, frame_index );
+        }
     }
 
     vec4 last_visibility_values = vec4(0);
@@ -548,6 +552,7 @@ void main() {
     sample_count_history.x = sample_count;
 
     memoryBarrierImage(); // NOTE(marco): we are reading and writing from the same image
+    barrier();
 
     imageStore( global_images_3d[ visibility_cache_texture_index ], global_index, last_visibility_values );
 
@@ -580,11 +585,11 @@ shared float local_image_data[ LOCAL_DATA_SIZE ][ LOCAL_DATA_SIZE ];
 shared vec3 local_normal_data[ LOCAL_DATA_SIZE ][ LOCAL_DATA_SIZE ];
 
 float visibility_temporal_filter( ivec3 index ) {
-    ivec2 iresolution = ivec2( resolution ) - 1;
+    if ( any( lessThan( index.xy, ivec2( 0 ) ) ) || any( greaterThanEqual( index.xy, ivec2( resolution * 0.5 ) ) ) ) {
+        return 0.0;
+    }
 
-    ivec2 xy = clamp( index.xy, ivec2( 0 ), iresolution );
-
-    vec4 last_visibility_values = texelFetch( global_textures_3d[ visibility_cache_texture_index ], ivec3( xy, index.z ), 0 );
+    vec4 last_visibility_values = texelFetch( global_textures_3d[ visibility_cache_texture_index ], index, 0 );
 
     float filtered_visibility = 0.25 * ( last_visibility_values.x + last_visibility_values.y + last_visibility_values.z + last_visibility_values.w );
 
@@ -592,18 +597,17 @@ float visibility_temporal_filter( ivec3 index ) {
 }
 
 vec3 get_normal( ivec3 index ) {
-    ivec2 iresolution = ivec2( resolution ) - 1;
 
-    ivec2 xy = clamp( index.xy, ivec2( 0 ), iresolution );
+    ivec2 scaled_xy = ivec2( index.xy * resolution_scale_rcp );
+    if ( any( lessThan( scaled_xy.xy, ivec2( 0 ) ) ) || any( greaterThanEqual( scaled_xy.xy, ivec2( resolution ) ) ) ) {
+        return vec3( 0 );
+    }
 
-    const float raw_depth = texelFetch( global_textures[ depth_texture_index ], xy, 0).r;
+    const float raw_depth = texelFetch( global_textures[ depth_texture_index ], scaled_xy.xy, 0).r;
     if ( raw_depth == 1.0f ) {
         return vec3( 0 );
     } else {
-        const vec2 screen_uv = uv_from_pixels( xy, uint( resolution.x ), uint( resolution.y ) );
-        const vec3 pixel_world_position = world_position_from_depth( screen_uv, raw_depth, inverse_view_projection);
-
-        vec2 encoded_normal = texelFetch( global_textures[ normals_texture_index ], xy, 0).rg;
+        vec2 encoded_normal = texelFetch( global_textures[ normals_texture_index ], scaled_xy.xy, 0).rg;
         vec3 normal = octahedral_decode( encoded_normal );
 
         return normal;
@@ -611,8 +615,8 @@ vec3 get_normal( ivec3 index ) {
 }
 
 void main() {
-    ivec2 iresolution = ivec2( resolution ) - 1;
-    if ( gl_GlobalInvocationID.x > iresolution.x || gl_GlobalInvocationID.y > iresolution.y )
+    ivec2 iresolution = ivec2( resolution * 0.5 );
+    if ( gl_GlobalInvocationID.x >= iresolution.x || gl_GlobalInvocationID.y >= iresolution.y )
         return;
 
     ivec3 local_index = ivec3( gl_LocalInvocationID.xyz ) + ivec3( 2, 2, 0 );
@@ -685,6 +689,7 @@ void main() {
         }
     }
 
+    memoryBarrierShared();
     barrier();
 
     float spatial_filtered_value = 0.0;

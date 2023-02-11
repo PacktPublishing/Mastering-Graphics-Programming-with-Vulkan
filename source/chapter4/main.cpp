@@ -139,7 +139,7 @@ int main( int argc, char** argv ) {
     imgui->init( &imgui_config );
 
     GameCamera game_camera;
-    game_camera.camera.init_perpective( 0.1f, 1000.f, 60.f, 1280.0f / 800.0f );
+    game_camera.camera.init_perpective( 0.1f, 1000.f, 60.f, wconf.width * 1.f / wconf.height );
     game_camera.init( true, 20.f, 6.f, 0.1f );
 
     time_service_init();

@@ -41,11 +41,16 @@ layout( location = 0 ) rayPayloadEXT RayPayload payload;
 
 void main() {
 	const ivec2 pixel_coord = ivec2(gl_LaunchIDEXT.xy);
-    const int probe_index = pixel_coord.y;
+    const int probe_index = pixel_coord.y + probe_update_offset;
     const int ray_index = pixel_coord.x;
 
     const bool skip_probe = (probe_status[probe_index] == PROBE_STATUS_OFF) || (probe_status[probe_index] == PROBE_STATUS_UNINITIALIZED);
     if ( use_probe_status() && skip_probe ) {
+        return;
+    }
+
+    const int probe_counts = probe_counts.x * probe_counts.y * probe_counts.z;
+    if (probe_index >= probe_counts) {
         return;
     }
 
@@ -57,7 +62,7 @@ void main() {
 
     traceRayEXT(as, gl_RayFlagsOpaqueEXT, 0xff, 0, 0, 0, ray_origin, 0.0, direction, 100.0, 0);
 
-    imageStore(global_images_2d[ radiance_output_index ], pixel_coord, vec4(payload.radiance, payload.distance));
+    imageStore(global_images_2d[ radiance_output_index ], ivec2(ray_index, probe_index), vec4(payload.radiance, payload.distance));
 }
 
 #endif
@@ -291,7 +296,7 @@ void main() {
             float probe_max_ray_distance = 1.0f * 1.5f;
 
             // Increase or decrease the filtered distance value's "sharpness"
-            weight = pow(weight, 2.5f);//volume.probeDistanceExponent);
+            weight = pow(weight, 2.5f);
 
             if (weight >= EPSILON) {
                 float distance = texelFetch(global_textures[nonuniformEXT(radiance_output_index)], sample_position, 0).w;

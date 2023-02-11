@@ -673,7 +673,7 @@ void main() {
     position.y = uint( resolution.y ) - position.y;
 
     const vec2 screen_uv = uv_from_pixels(ivec2( gl_FragCoord.xy ), uint(resolution.x), uint(resolution.y));
-    color_out = calculate_lighting( base_colour, orm, normal, emissive_colour.rgb, world_position, position, screen_uv );
+    color_out = calculate_lighting( base_colour, orm, normal, emissive_colour.rgb, world_position, position, screen_uv, true );
 
     color_out.rgb = apply_volumetric_fog( screen_uv, gl_FragCoord.z, color_out.rgb );
 #endif

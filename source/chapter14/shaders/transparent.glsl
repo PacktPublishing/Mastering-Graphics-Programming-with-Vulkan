@@ -80,7 +80,7 @@ void main() {
     uvec2 position = uvec2(gl_FragCoord.x - 0.5, gl_FragCoord.y - 0.5);
     position.y = uint( resolution.y ) - position.y;
 
-    frag_color = calculate_lighting( base_colour, pbr_parameters, normal, emissive_colour, world_position, position, vec2(0,0) );
+    frag_color = calculate_lighting( base_colour, pbr_parameters, normal, emissive_colour, world_position, position, vec2(0,0), true );
 }
 
 #endif // FRAGMENT

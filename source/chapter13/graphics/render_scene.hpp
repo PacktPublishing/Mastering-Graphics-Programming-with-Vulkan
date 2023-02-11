@@ -154,7 +154,11 @@ namespace raptor {
 
         u32                     bilateral_weights_texture_index;
         u32                     reflections_texture_index;
-        u32                     pad[ 2 ];
+        u32                     raytraced_shadow_light_color_type;
+        f32                     raytraced_shadow_light_radius;
+
+        vec3s                   raytraced_shadow_light_position;
+        f32                     raytraced_shadow_light_intensity;
     }; // GpuLightingData
 
     struct glTFScene;
@@ -1077,6 +1081,9 @@ namespace raptor {
             u32 filetered_variation_texture;
 
             u32 frame_index;
+            f32 resolution_scale;
+            f32 resolution_scale_rcp;
+            u32 pad;
         };
 
         void                    render( u32 current_frame_index, CommandBuffer* gpu_commands, RenderScene* render_scene ) override;
@@ -1112,6 +1119,8 @@ namespace raptor {
 
         bool                    clear_resources;
         u32                     last_active_lights_count = 0;
+
+        f32                     texture_scale;
 
     }; // struct ShadowVisibilityPass
 

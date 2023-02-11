@@ -50,6 +50,8 @@ struct FrameGraphResourceInfo {
             u32                             width;
             u32                             height;
             u32                             depth;
+            f32                             scale_width;
+            f32                             scale_height;
 
             VkFormat                        format;
             VkImageUsageFlags               flags;
@@ -83,9 +85,9 @@ struct FrameGraphResource {
     FrameGraphNodeHandle                    producer;
     FrameGraphResourceHandle                output_handle;
 
-    i32                                     ref_count = 0;
+    i32                                     ref_count   = 0;
 
-    const char*                             name = nullptr;
+    const char*                             name        = nullptr;
 };
 
 struct FrameGraphResourceInputCreation {
@@ -144,11 +146,14 @@ struct FrameGraphNode {
 
     Array<FrameGraphNodeHandle>             edges;
 
-    bool                                    compute = false;
-    bool                                    ray_tracing = false;
-    bool                                    enabled = true;
+    f32                                     resolution_scale_width  = 0.f;
+    f32                                     resolution_scale_height = 0.f;
 
-    const char*                             name    = nullptr;
+    bool                                    compute                 = false;
+    bool                                    ray_tracing             = false;
+    bool                                    enabled                 = true;
+
+    const char*                             name                    = nullptr;
 };
 
 struct FrameGraphRenderPassCache {
@@ -159,13 +164,13 @@ struct FrameGraphRenderPassCache {
 };
 
 struct FrameGraphResourceCache {
-    void                                        init( Allocator* allocator, GpuDevice* device );
-    void                                        shutdown( );
+    void                                    init( Allocator* allocator, GpuDevice* device );
+    void                                    shutdown( );
 
-    GpuDevice*                                  device;
+    GpuDevice*                              device;
 
-    FlatHashMap<u64, u32>                       resource_map;
-    ResourcePoolTyped<FrameGraphResource>       resources;
+    FlatHashMap<u64, u32>                   resource_map;
+    ResourcePoolTyped<FrameGraphResource>   resources;
 };
 
 struct FrameGraphNodeCache {
@@ -181,6 +186,7 @@ struct FrameGraphNodeCache {
 //
 //
 struct FrameGraphBuilder : public Service {
+
     void                            init( GpuDevice* device );
     void                            shutdown();
 

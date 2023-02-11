@@ -1949,12 +1949,16 @@ void ShadowVisibilityPass::render( u32 current_frame_index, CommandBuffer* gpu_c
         return;
     }
 
+    // TODO(marco): remove this as we are only ray-tracing direct lighting
     if ( render_scene->active_lights != last_active_lights_count ) {
         GpuDevice& gpu = *renderer->gpu;
         recreate_textures( gpu, render_scene->active_lights );
 
         FrameGraphResourceInfo resource_info{ };
-        resource_info.set_external_texture_3d( gpu.swapchain_width, gpu.swapchain_height, render_scene->active_lights, VK_FORMAT_R16_SFLOAT, 0, filtered_visibility_texture );
+
+        const u32 adjusted_width = ceilu32( gpu.swapchain_width * texture_scale );
+        const u32 adjusted_height = ceilu32( gpu.swapchain_height * texture_scale );
+        resource_info.set_external_texture_3d( adjusted_width, adjusted_height, render_scene->active_lights, VK_FORMAT_R16_SFLOAT, 0, filtered_visibility_texture );
 
         shadow_visibility_resource->resource_info = resource_info;
     }
@@ -1980,33 +1984,33 @@ void ShadowVisibilityPass::render( u32 current_frame_index, CommandBuffer* gpu_c
     gpu_commands->issue_texture_barrier( visibility_cache_texture, ResourceState::RESOURCE_STATE_GENERIC_READ, 0, 1 );
     gpu_commands->issue_texture_barrier( variation_texture, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS, 0, 1 );
 
-    // NOTE(marco): variance pass
+    // Variance pass
     gpu_commands->bind_pipeline( variance_pipeline );
 
     gpu_commands->bind_descriptor_set( descriptor_set + current_frame_index, 1, 0, 0 );
 
-    u32 x = ( gpu_commands->gpu_device->swapchain_width + 7 ) / 8;
-    u32 y = ( gpu_commands->gpu_device->swapchain_height + 7 ) / 8;
-    gpu_commands->dispatch( x, y, render_scene->active_lights );
+    u32 x = ( ceilu32( gpu_commands->gpu_device->swapchain_width * texture_scale ) + 7 ) / 8;
+    u32 y = ( ceilu32( gpu_commands->gpu_device->swapchain_height * texture_scale ) + 7 ) / 8;
+    gpu_commands->dispatch( x, y, 1 );
 
     gpu_commands->issue_texture_barrier( variation_cache_texture, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS, 0, 1 );
     gpu_commands->issue_texture_barrier( samples_count_cache_texture, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS, 0, 1 );
     gpu_commands->issue_texture_barrier( filtered_variation_texture, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS, 0, 1 );
     gpu_commands->issue_texture_barrier( variation_texture, ResourceState::RESOURCE_STATE_GENERIC_READ, 0, 1 );
 
-    // NOTE(marco): visiblity pass
+    // Visibility pass
     gpu_commands->bind_pipeline( visibility_pipeline );
 
-    gpu_commands->dispatch( x, y, render_scene->active_lights );
+    gpu_commands->dispatch( x, y, 1 );
 
     gpu_commands->issue_texture_barrier( visibility_cache_texture, ResourceState::RESOURCE_STATE_GENERIC_READ, 0, 1 );
     gpu_commands->issue_texture_barrier( filtered_variation_texture, ResourceState::RESOURCE_STATE_GENERIC_READ, 0, 1 );
     gpu_commands->issue_texture_barrier( filtered_visibility_texture, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS, 0, 1 );
 
-    // NOTE(marco): visiblity filtering pass
+    // Visibility filtering pass
     gpu_commands->bind_pipeline( visibility_filtering_pipeline );
 
-    gpu_commands->dispatch( x, y, render_scene->active_lights );
+    gpu_commands->dispatch( x, y, 1 );
 }
 
 void ShadowVisibilityPass::on_resize( GpuDevice& gpu, FrameGraph* frame_graph, u32 new_width, u32 new_height ) {
@@ -2014,12 +2018,15 @@ void ShadowVisibilityPass::on_resize( GpuDevice& gpu, FrameGraph* frame_graph, u
         return;
     }
 
-    gpu.resize_texture_3d( visibility_cache_texture, new_width, new_height, last_active_lights_count );
-    gpu.resize_texture_3d( variation_cache_texture, new_width, new_height, last_active_lights_count );
-    gpu.resize_texture_3d( variation_texture, new_width, new_height, last_active_lights_count );
-    gpu.resize_texture_3d( filtered_visibility_texture, new_width, new_height, last_active_lights_count );
-    gpu.resize_texture_3d( filtered_variation_texture, new_width, new_height, last_active_lights_count );
-    gpu.resize_texture_3d( samples_count_cache_texture, new_width, new_height, last_active_lights_count );
+    const u32 adjusted_width = ceilu32( new_width * texture_scale );
+    const u32 adjusted_height = ceilu32( new_height * texture_scale );
+
+    gpu.resize_texture_3d( visibility_cache_texture, adjusted_width, adjusted_height, last_active_lights_count );
+    gpu.resize_texture_3d( variation_cache_texture, adjusted_width, adjusted_height, last_active_lights_count );
+    gpu.resize_texture_3d( variation_texture, adjusted_width, adjusted_height, last_active_lights_count );
+    gpu.resize_texture_3d( filtered_visibility_texture, adjusted_width, adjusted_height, last_active_lights_count );
+    gpu.resize_texture_3d( filtered_variation_texture, adjusted_width, adjusted_height, last_active_lights_count );
+    gpu.resize_texture_3d( samples_count_cache_texture, adjusted_width, adjusted_height, last_active_lights_count );
 
     clear_resources = true;
 }
@@ -2034,8 +2041,14 @@ void ShadowVisibilityPass::recreate_textures( GpuDevice& gpu, u32 lights_count )
         gpu.destroy_texture( filtered_variation_texture );
     }
 
+    const u32 adjusted_width = ceilu32( gpu.swapchain_width * texture_scale );
+    const u32 adjusted_height = ceilu32( gpu.swapchain_height * texture_scale );
+
     TextureCreation texture_creation{ };
-    texture_creation.set_flags( TextureFlags::Compute_mask ).set_name( "visibility_cache" ).set_format_type( VK_FORMAT_R16G16B16A16_SFLOAT, TextureType::Texture3D ).set_size( gpu.swapchain_width, gpu.swapchain_height, lights_count ).set_mips( 1 ).set_layers( 1 );
+    texture_creation.set_flags( TextureFlags::Compute_mask ).set_name( "visibility_cache" )
+                    .set_format_type( VK_FORMAT_R16G16B16A16_SFLOAT, TextureType::Texture3D )
+                    .set_size( adjusted_width, adjusted_height, lights_count )
+                    .set_mips( 1 ).set_layers( 1 );
 
     // NOTE(marco): last 4 frames visibility values per light
     visibility_cache_texture = gpu.create_texture( texture_creation);
@@ -2080,11 +2093,17 @@ void ShadowVisibilityPass::prepare_draws( RenderScene& scene, FrameGraph* frame_
 
     GpuDevice& gpu = *renderer->gpu;
 
+    // Use half resolution textures
+    texture_scale = 0.5f;
+
     recreate_textures( gpu, scene.active_lights );
 
     cstring shadow_visibility_resource_name = "shadow_visibility";
     FrameGraphResourceInfo resource_info{ };
-    resource_info.set_external_texture_3d( gpu.swapchain_width, gpu.swapchain_height, scene.active_lights, VK_FORMAT_R16_SFLOAT, 0, filtered_visibility_texture );
+
+    const u32 adjusted_width = ceilu32( gpu.swapchain_width * texture_scale );
+    const u32 adjusted_height = ceilu32( gpu.swapchain_height * texture_scale );
+    resource_info.set_external_texture_3d( adjusted_width, adjusted_height, scene.active_lights, VK_FORMAT_R16_SFLOAT, 0, filtered_visibility_texture );
 
     shadow_visibility_resource = frame_graph->get_resource( shadow_visibility_resource_name );
     RASSERT( shadow_visibility_resource != nullptr );
@@ -2143,6 +2162,8 @@ void ShadowVisibilityPass::upload_gpu_data( RenderScene& scene ) {
         constants->filtered_visibility_texture = filtered_visibility_texture.index;
         constants->filetered_variation_texture = filtered_variation_texture.index;
         constants->frame_index = renderer->gpu->absolute_frame % 4;
+        constants->resolution_scale = texture_scale;
+        constants->resolution_scale_rcp = 1.0f / texture_scale;
 
         renderer->gpu->unmap_buffer( mb );
     }

@@ -78,8 +78,6 @@ void AsynchronousLoader::shutdown() {
 }
 
 void AsynchronousLoader::update( Allocator* scratch_allocator ) {
-    ZoneScoped;
-
     using namespace raptor;
 
     // If a texture was processed in the previous commands, signal the renderer
@@ -104,6 +102,7 @@ void AsynchronousLoader::update( Allocator* scratch_allocator ) {
 
     // Process upload requests
     if ( upload_requests.size ) {
+        ZoneScoped;
 
         // Wait for transfer fence to be finished
         if ( vkGetFenceStatus( renderer->gpu->vulkan_device, transfer_fence ) != VK_SUCCESS ) {

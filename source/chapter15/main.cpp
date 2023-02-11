@@ -596,7 +596,7 @@ int main( int argc, char** argv ) {
     task_scheduler.Initialize( config );
 
     // window
-    WindowConfiguration wconf{ 1280, 800, "Raptor Chapter 15", &MemoryService::instance()->system_allocator};
+    WindowConfiguration wconf{ 1280, 800, "Raptor Chapter 15: RT Reflections", &MemoryService::instance()->system_allocator};
     raptor::Window window;
     window.init( &wconf );
 
@@ -641,7 +641,7 @@ int main( int argc, char** argv ) {
     imgui->init( &imgui_config );
 
     GameCamera game_camera;
-    game_camera.camera.init_perpective( 0.1f, 100.f, 60.f, 1280.0f / 800.0f );
+    game_camera.camera.init_perpective( 0.1f, 100.f, 60.f, wconf.width * 1.f / wconf.height );
     game_camera.init( true, 20.f, 6.f, 0.1f );
 
     RenderResourcesLoader render_resources_loader;
@@ -1070,6 +1070,12 @@ int main( int argc, char** argv ) {
         static u32 lighting_debug_modes = 0;
         static u32 light_to_debug = 0;
         static vec2s last_clicked_position = vec2s{ 1280 / 2.0f, 800 / 2.0f };
+        static vec3s raytraced_shadow_light_direction = vec3s{ 0, 1, -0.2f };
+        static vec3s raytraced_shadow_light_position = vec3s{ 0, 1, 0 };
+        static float raytraced_shadow_light_intensity = 5.0f;
+        static i32 raytraced_shadow_light_type = 0;
+        static f32 raytraced_shadow_light_radius = 10.f;
+        static vec3s raytraced_shadow_light_color = vec3s{ 1, 1, 1 };
 
         // Jittering update
         static u32 jitter_index = 0;
@@ -1271,9 +1277,36 @@ int main( int argc, char** argv ) {
                     ImGui::Checkbox( "Block Magnifying Zoom Input", &scene->post_block_zoom_input );
                     ImGui::SliderUint( "Magnifying Zoom Scale", &scene->post_zoom_scale, 2, 4 );
                 }
+                if ( ImGui::CollapsingHeader( "Raytraced Shadows" ) ) {
+                    static cstring light_type[] = { "Point", "Directional" };
+                    ImGui::Combo( "RT Light Type", &raytraced_shadow_light_type, light_type, ArraySize( light_type ) );
+
+                    ImGui::SliderFloat( "RT Light intensity", &raytraced_shadow_light_intensity, 0.01f, 10.f, "%2.2f" );
+                    ImGui::ColorEdit3( "RT Light Color", raytraced_shadow_light_color.raw );
+
+                    // If directional light, disable light position and light radius controls
+                    if ( raytraced_shadow_light_type == 1 ) {
+                        ImGui::BeginDisabled();
+                    }
+                    ImGui::SliderFloat( "RT Light Radius", &raytraced_shadow_light_radius, 0.01f, 10.f );
+                    ImGui::SliderFloat3( "RT Light Position", raytraced_shadow_light_position.raw, -10.f, 10.f, "%2.2f" );
+                    if ( raytraced_shadow_light_type == 1 ) {
+                        ImGui::EndDisabled();
+                    }
+
+                    // If type is a pointlight, disable the light direction
+                    if ( raytraced_shadow_light_type == 0 ) {
+                        ImGui::BeginDisabled();
+                    }
+                    ImGui::SliderFloat3( "RT Directional Direction", raytraced_shadow_light_direction.raw, -1.f, 1.f, "%2.2f" );
+                    if ( raytraced_shadow_light_type == 0 ) {
+                        ImGui::EndDisabled();
+                    }
+                }
                 if ( ImGui::CollapsingHeader( "Global Illumination" ) ) {
 
-                    ImGui::Text( "Total Rays: %u, Rays per probe %u", frame_renderer.indirect_pass.get_total_rays(), frame_renderer.indirect_pass.probe_rays );
+                    ImGui::Text( "Total Rays: %u, Rays per probe %u, Total Probes %u", frame_renderer.indirect_pass.get_total_rays(), frame_renderer.indirect_pass.probe_rays, frame_renderer.indirect_pass.get_total_probes() );
+                    ImGui::SliderInt( "Per frame probe updates", &scene->gi_per_frame_probes_update, 0, frame_renderer.indirect_pass.get_total_probes() );
                     // Check if probe offsets needs to be recalculated.
                     scene->gi_recalculate_offsets = false;
 
@@ -1590,6 +1623,13 @@ int main( int argc, char** argv ) {
                 const float one_over_log_f_over_n = 1.0f / log2( game_camera.camera.far_plane / game_camera.camera.near_plane );
                 gpu_lighting_data->volumetric_fog_distribution_scale = scene->volumetric_fog_slices * one_over_log_f_over_n;
                 gpu_lighting_data->volumetric_fog_distribution_bias = -( scene->volumetric_fog_slices * log2( game_camera.camera.near_plane ) * one_over_log_f_over_n );
+
+                raptor::Color raytraced_light_color_type_packed;
+                raytraced_light_color_type_packed.set( raytraced_shadow_light_color.x, raytraced_shadow_light_color.y, raytraced_shadow_light_color.z, raytraced_shadow_light_type );
+                gpu_lighting_data->raytraced_shadow_light_color_type = raytraced_light_color_type_packed.abgr;
+                gpu_lighting_data->raytraced_shadow_light_radius = raytraced_shadow_light_radius;
+                gpu_lighting_data->raytraced_shadow_light_position = raytraced_shadow_light_type == 0 ? raytraced_shadow_light_position : raytraced_shadow_light_direction;
+                gpu_lighting_data->raytraced_shadow_light_intensity = raytraced_shadow_light_intensity;
 
                 gpu.unmap_buffer( cb_map );
             }

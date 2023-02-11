@@ -47,9 +47,9 @@ struct FrameGraphResourceInfo {
         } buffer;
 
         struct {
-            u16                             width;
-            u16                             height;
-            u16                             depth;
+            u32                             width;
+            u32                             height;
+            u32                             depth;
             f32                             scale_width;
             f32                             scale_height;
 

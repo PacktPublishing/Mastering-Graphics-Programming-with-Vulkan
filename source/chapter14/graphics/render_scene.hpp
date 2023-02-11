@@ -154,7 +154,11 @@ namespace raptor {
 
         u32                     bilateral_weights_texture_index;
         u32                     reflections_texture_index;
-        u32                     pad[ 2 ];
+        u32                     raytraced_shadow_light_color_type;
+        f32                     raytraced_shadow_light_radius;
+
+        vec3s                   raytraced_shadow_light_position;
+        f32                     raytraced_shadow_light_intensity;
     }; // GpuLightingData
 
     struct glTFScene;
@@ -1077,6 +1081,9 @@ namespace raptor {
             u32 filetered_variation_texture;
 
             u32 frame_index;
+            f32 resolution_scale;
+            f32 resolution_scale_rcp;
+            u32 pad;
         };
 
         void                    render( u32 current_frame_index, CommandBuffer* gpu_commands, RenderScene* render_scene ) override;
@@ -1113,6 +1120,8 @@ namespace raptor {
         bool                    clear_resources;
         u32                     last_active_lights_count = 0;
 
+        f32                     texture_scale;
+
     }; // struct ShadowVisibilityPass
 
 
@@ -1131,6 +1140,7 @@ namespace raptor {
 
         void                    update_dependent_resources( GpuDevice& gpu, FrameGraph* frame_graph, RenderScene* render_scene ) override;
 
+        u32                     get_total_probes()                  { return probe_count_x * probe_count_y * probe_count_z; }
         u32                     get_total_rays()                    { return probe_rays * probe_count_x * probe_count_y * probe_count_z; }
 
         Renderer*               renderer;
@@ -1163,6 +1173,9 @@ namespace raptor {
         u32                     probe_count_x = 20;
         u32                     probe_count_y = 12;
         u32                     probe_count_z = 20;
+
+        i32                     per_frame_probe_updates = 0;
+        i32                     probe_update_offset = 0;
 
         i32                     probe_rays = 128;
         i32                     irradiance_atlas_width;
@@ -1638,6 +1651,7 @@ namespace raptor {
         bool                    gi_use_half_resolution = true;
         bool                    gi_use_infinite_bounces = true;
         f32                     gi_infinite_bounces_multiplier = 0.75f;
+        i32                     gi_per_frame_probes_update = 1000;
 
         bool                    use_meshlets = true;
         bool                    use_meshlets_emulation = false;

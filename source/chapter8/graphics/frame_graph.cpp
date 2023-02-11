@@ -172,10 +172,29 @@ void FrameGraph::parse( cstring file_path, StackAllocator* temp_allocator ) {
                     output_creation.resource_info.texture.load_op = string_to_render_pass_operation( load_op.c_str() );
 
                     json resolution = pass_output[ "resolution" ];
+                    json scaling = pass_output[ "resolution_scale" ];
 
-                    output_creation.resource_info.texture.width = resolution[0];
-                    output_creation.resource_info.texture.height = resolution[1];
-                    output_creation.resource_info.texture.depth = 1;
+                    if ( resolution.is_array() ) {
+                        output_creation.resource_info.texture.width = resolution[ 0 ];
+                        output_creation.resource_info.texture.height = resolution[ 1 ];
+                        output_creation.resource_info.texture.depth = 1;
+                        output_creation.resource_info.texture.scale_width = 0.f;
+                        output_creation.resource_info.texture.scale_height = 0.f;
+                    } else if ( scaling.is_array() ) {
+                        output_creation.resource_info.texture.width = 0;
+                        output_creation.resource_info.texture.height = 0;
+                        output_creation.resource_info.texture.depth = 1;
+                        output_creation.resource_info.texture.scale_width = scaling[ 0 ];
+                        output_creation.resource_info.texture.scale_height = scaling[ 1 ];
+                    } else {
+                        // Defaults
+                        output_creation.resource_info.texture.width = 0;
+                        output_creation.resource_info.texture.height = 0;
+                        output_creation.resource_info.texture.depth = 1;
+                        output_creation.resource_info.texture.scale_width = 1.f;
+                        output_creation.resource_info.texture.scale_height = 1.f;
+                    }
+
                     output_creation.resource_info.texture.compute = node_creation.compute;
 
                     // Parse depth/stencil values
@@ -281,6 +300,8 @@ static void create_framebuffer( FrameGraph* frame_graph, FrameGraphNode* node ) 
 
     u32 width = 0;
     u32 height = 0;
+    f32 scale_width = 0.f;
+    f32 scale_height = 0.f;
 
     for ( u32 r = 0; r < node->outputs.size; ++r ) {
         FrameGraphResource* resource = frame_graph->access_resource( node->outputs[ r ] );
@@ -293,12 +314,14 @@ static void create_framebuffer( FrameGraph* frame_graph, FrameGraphNode* node ) 
 
         if ( width == 0 ) {
             width = info.texture.width;
+            scale_width = info.texture.scale_width > 0.f ? info.texture.scale_width : 1.f;
         } else {
             RASSERT( width == info.texture.width );
         }
 
         if ( height == 0 ) {
             height = info.texture.height;
+            scale_height = info.texture.scale_height > 0.f ? info.texture.scale_height : 1.f;
         } else {
             RASSERT( height == info.texture.height );
         }
@@ -329,12 +352,14 @@ static void create_framebuffer( FrameGraph* frame_graph, FrameGraphNode* node ) 
 
         if ( width == 0 ) {
             width = info.texture.width;
+            scale_width = info.texture.scale_width > 0.f ? info.texture.scale_width : 1.f;
         } else {
             RASSERT( width == info.texture.width );
         }
 
         if ( height == 0 ) {
             height = info.texture.height;
+            scale_height = info.texture.scale_height > 0.f ? info.texture.scale_height : 1.f;
         } else {
             RASSERT( height == info.texture.height );
         }
@@ -350,9 +375,12 @@ static void create_framebuffer( FrameGraph* frame_graph, FrameGraphNode* node ) 
         }
     }
 
-    framebuffer_creation.width = width;
-    framebuffer_creation.height = height;
+    framebuffer_creation.set_width_height( width, height );
+    framebuffer_creation.set_scaling( scale_width, scale_height, 1 );
     node->framebuffer = frame_graph->builder->device->create_framebuffer( framebuffer_creation );
+
+    node->resolution_scale_width = scale_width;
+    node->resolution_scale_height = scale_height;
 }
 
 static void create_render_pass( FrameGraph* frame_graph, FrameGraphNode* node ) {
@@ -561,6 +589,12 @@ void FrameGraph::compile() {
 
                 if ( resource->type == FrameGraphResourceType_Attachment ) {
                     FrameGraphResourceInfo& info = resource->resource_info;
+
+                    // Resolve texture size if needed
+                    if ( info.texture.width == 0 || info.texture.height == 0 ) {
+                        info.texture.width = builder->device->swapchain_width * info.texture.scale_width;
+                        info.texture.height = builder->device->swapchain_height * info.texture.scale_height;
+                    }
 
                     TextureFlags::Mask texture_creation_flags = info.texture.compute ? ( TextureFlags::Mask )(TextureFlags::RenderTarget_mask | TextureFlags::Compute_mask) : TextureFlags::RenderTarget_mask;
 

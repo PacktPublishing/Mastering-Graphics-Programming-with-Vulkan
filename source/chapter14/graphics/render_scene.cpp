@@ -34,6 +34,7 @@
 #define DEBUG_DRAW_MESHLET_SPHERES 0
 #define DEBUG_DRAW_MESHLET_CONES 0
 #define DEBUG_DRAW_POINT_LIGHT_SPHERES 0
+#define DEBUG_DRAW_REFLECTION_PROBES 1
 
 namespace raptor {
 
@@ -1196,7 +1197,7 @@ void DebugPass::prepare_draws( RenderScene& scene, FrameGraph* frame_graph, Allo
     mesh_name.init( 1024, scratch_allocator );
     cstring filename = mesh_name.append_use_f( "%s/sphere.obj", RAPTOR_DATA_FOLDER );
 
-#if ( DEBUG_DRAW_MESHLET_SPHERES | DEBUG_DRAW_POINT_LIGHT_SPHERES)
+#if ( DEBUG_DRAW_MESHLET_SPHERES || DEBUG_DRAW_POINT_LIGHT_SPHERES || DEBUG_DRAW_REFLECTION_PROBES)
     load_debug_mesh( filename, resident_allocator, renderer, sphere_index_count, &sphere_mesh_buffer, &sphere_mesh_indices );
 #endif // DEBUG_DRAW_MESHLET_SPHERES | DEBUG_DRAW_POINT_LIGHT_SPHERES
 
@@ -1215,7 +1216,7 @@ void DebugPass::prepare_draws( RenderScene& scene, FrameGraph* frame_graph, Allo
     Array<VkDrawIndexedIndirectCommand> sphere_indirect_commands;
     sphere_indirect_commands.init( resident_allocator, 4096 );
 
-#if DEBUG_DRAW_MESHLET_SPHERES
+#if (DEBUG_DRAW_MESHLET_SPHERES)
     Array<mat4s> cone_matrices;
     cone_matrices.init( resident_allocator, 4096 );
 
@@ -1303,7 +1304,9 @@ void DebugPass::prepare_draws( RenderScene& scene, FrameGraph* frame_graph, Allo
 
         sphere_mesh_descriptor_set = renderer->gpu->create_descriptor_set( creation );
     }
+#endif // DEBUG_DRAW_MESHLET_SPHERES
 
+#if (DEBUG_DRAW_MESHLET_CONES)
     {
        BufferCreation creation{ };
        sizet buffer_size = cone_matrices.size * sizeof( mat4s );
@@ -1332,7 +1335,7 @@ void DebugPass::prepare_draws( RenderScene& scene, FrameGraph* frame_graph, Allo
 
     cone_matrices.shutdown();
     cone_indirect_commands.shutdown();
-#endif
+#endif // DEBUG_DRAW_MESHLET_CONES
 
 #if DEBUG_DRAW_POINT_LIGHT_SPHERES
     for ( u32 i = 0; i < scene.active_lights; ++i ) {
@@ -1378,7 +1381,7 @@ void DebugPass::prepare_draws( RenderScene& scene, FrameGraph* frame_graph, Allo
 
         sphere_mesh_descriptor_set = renderer->gpu->create_descriptor_set( creation );
     }
-#endif
+#endif // DEBUG_DRAW_POINT_LIGHT_SPHERES
 
     bounding_matrices.shutdown();
     sphere_indirect_commands.shutdown();
@@ -1422,9 +1425,12 @@ void DebugPass::free_gpu_resources( GpuDevice& gpu ) {
     if ( !enabled )
         return;
 
-#if ( DEBUG_DRAW_MESHLET_SPHERES | DEBUG_DRAW_POINT_LIGHT_SPHERES)
+#if ( DEBUG_DRAW_MESHLET_SPHERES || DEBUG_DRAW_POINT_LIGHT_SPHERES || DEBUG_DRAW_REFLECTION_PROBES )
     renderer->destroy_buffer( sphere_mesh_indices );
     renderer->destroy_buffer( sphere_mesh_buffer );
+#endif
+
+#if ( DEBUG_DRAW_MESHLET_SPHERES || DEBUG_DRAW_POINT_LIGHT_SPHERES )
     renderer->destroy_buffer( sphere_matrices_buffer );
     renderer->destroy_buffer( sphere_draw_indirect_buffer );
 
@@ -1459,7 +1465,7 @@ void DebugPass::update_dependent_resources( GpuDevice& gpu, FrameGraph* frame_gr
 
         DescriptorSetLayoutHandle layout = gpu.get_descriptor_set_layout( gi_debug_probes_pipeline, k_material_descriptor_set_index );
         DescriptorSetCreation ds_creation{};
-        ds_creation.reset().set_layout( layout ).buffer( render_scene->ddgi_constants_cache, 40 ).buffer( render_scene->ddgi_probe_status_cache, 43 );
+        ds_creation.reset().set_layout( layout ).buffer( render_scene->ddgi_constants_cache, 55 ).buffer( render_scene->ddgi_probe_status_cache, 43 );
         render_scene->add_scene_descriptors( ds_creation, pass );
 
         gi_debug_probes_descriptor_set = gpu.create_descriptor_set( ds_creation );
@@ -1955,7 +1961,9 @@ void ShadowVisibilityPass::render( u32 current_frame_index, CommandBuffer* gpu_c
         recreate_textures( gpu, render_scene->active_lights );
 
         FrameGraphResourceInfo resource_info{ };
-        resource_info.set_external_texture_3d( gpu.swapchain_width, gpu.swapchain_height, render_scene->active_lights, VK_FORMAT_R16_SFLOAT, 0, filtered_visibility_texture );
+        const u32 adjusted_width = ceilu32( gpu.swapchain_width * texture_scale );
+        const u32 adjusted_height = ceilu32( gpu.swapchain_height * texture_scale );
+        resource_info.set_external_texture_3d( adjusted_width, adjusted_height, render_scene->active_lights, VK_FORMAT_R16_SFLOAT, 0, filtered_visibility_texture );
 
         shadow_visibility_resource->resource_info = resource_info;
     }
@@ -1986,9 +1994,9 @@ void ShadowVisibilityPass::render( u32 current_frame_index, CommandBuffer* gpu_c
 
     gpu_commands->bind_descriptor_set( descriptor_set + current_frame_index, 1, 0, 0 );
 
-    u32 x = ( gpu_commands->gpu_device->swapchain_width + 7 ) / 8;
-    u32 y = ( gpu_commands->gpu_device->swapchain_height + 7 ) / 8;
-    gpu_commands->dispatch( x, y, render_scene->active_lights );
+    u32 x = ( ceilu32( gpu_commands->gpu_device->swapchain_width * texture_scale ) + 7 ) / 8;
+    u32 y = ( ceilu32( gpu_commands->gpu_device->swapchain_height * texture_scale ) + 7 ) / 8;
+    gpu_commands->dispatch( x, y, 1 );
 
     gpu_commands->issue_texture_barrier( variation_cache_texture, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS, 0, 1 );
     gpu_commands->issue_texture_barrier( samples_count_cache_texture, ResourceState::RESOURCE_STATE_UNORDERED_ACCESS, 0, 1 );
@@ -1998,7 +2006,7 @@ void ShadowVisibilityPass::render( u32 current_frame_index, CommandBuffer* gpu_c
     // NOTE(marco): visiblity pass
     gpu_commands->bind_pipeline( visibility_pipeline );
 
-    gpu_commands->dispatch( x, y, render_scene->active_lights );
+    gpu_commands->dispatch( x, y, 1 );
 
     gpu_commands->issue_texture_barrier( visibility_cache_texture, ResourceState::RESOURCE_STATE_GENERIC_READ, 0, 1 );
     gpu_commands->issue_texture_barrier( filtered_variation_texture, ResourceState::RESOURCE_STATE_GENERIC_READ, 0, 1 );
@@ -2007,7 +2015,7 @@ void ShadowVisibilityPass::render( u32 current_frame_index, CommandBuffer* gpu_c
     // NOTE(marco): visiblity filtering pass
     gpu_commands->bind_pipeline( visibility_filtering_pipeline );
 
-    gpu_commands->dispatch( x, y, render_scene->active_lights );
+    gpu_commands->dispatch( x, y, 1 );
 }
 
 void ShadowVisibilityPass::on_resize( GpuDevice& gpu, FrameGraph* frame_graph, u32 new_width, u32 new_height ) {
@@ -2015,12 +2023,15 @@ void ShadowVisibilityPass::on_resize( GpuDevice& gpu, FrameGraph* frame_graph, u
         return;
     }
 
-    gpu.resize_texture_3d( visibility_cache_texture, new_width, new_height, last_active_lights_count );
-    gpu.resize_texture_3d( variation_cache_texture, new_width, new_height, last_active_lights_count );
-    gpu.resize_texture_3d( variation_texture, new_width, new_height, last_active_lights_count );
-    gpu.resize_texture_3d( filtered_visibility_texture, new_width, new_height, last_active_lights_count );
-    gpu.resize_texture_3d( filtered_variation_texture, new_width, new_height, last_active_lights_count );
-    gpu.resize_texture_3d( samples_count_cache_texture, new_width, new_height, last_active_lights_count );
+    const u32 adjusted_width = ceilu32( new_width * texture_scale );
+    const u32 adjusted_height = ceilu32( new_height * texture_scale );
+
+    gpu.resize_texture_3d( visibility_cache_texture, adjusted_width, adjusted_height, last_active_lights_count );
+    gpu.resize_texture_3d( variation_cache_texture, adjusted_width, adjusted_height, last_active_lights_count );
+    gpu.resize_texture_3d( variation_texture, adjusted_width, adjusted_height, last_active_lights_count );
+    gpu.resize_texture_3d( filtered_visibility_texture, adjusted_width, adjusted_height, last_active_lights_count );
+    gpu.resize_texture_3d( filtered_variation_texture, adjusted_width, adjusted_height, last_active_lights_count );
+    gpu.resize_texture_3d( samples_count_cache_texture, adjusted_width, adjusted_height, last_active_lights_count );
 
     clear_resources = true;
 }
@@ -2035,8 +2046,14 @@ void ShadowVisibilityPass::recreate_textures( GpuDevice& gpu, u32 lights_count )
         gpu.destroy_texture( filtered_variation_texture );
     }
 
+    const u32 adjusted_width = ceilu32( gpu.swapchain_width * texture_scale );
+    const u32 adjusted_height = ceilu32( gpu.swapchain_height * texture_scale );
+
     TextureCreation texture_creation{ };
-    texture_creation.set_flags( TextureFlags::Compute_mask ).set_name( "visibility_cache" ).set_format_type( VK_FORMAT_R16G16B16A16_SFLOAT, TextureType::Texture3D ).set_size( gpu.swapchain_width, gpu.swapchain_height, lights_count ).set_mips( 1 ).set_layers( 1 );
+    texture_creation.set_flags( TextureFlags::Compute_mask ).set_name( "visibility_cache" )
+                    .set_format_type( VK_FORMAT_R16G16B16A16_SFLOAT, TextureType::Texture3D )
+                    .set_size( adjusted_width, adjusted_height, lights_count )
+                    .set_mips( 1 ).set_layers( 1 );
 
     // NOTE(marco): last 4 frames visibility values per light
     visibility_cache_texture = gpu.create_texture( texture_creation);
@@ -2077,11 +2094,17 @@ void ShadowVisibilityPass::prepare_draws( RenderScene& scene, FrameGraph* frame_
 
     GpuDevice& gpu = *renderer->gpu;
 
+    // Use half resolution textures
+    texture_scale = 0.5f;
+
     recreate_textures( gpu, scene.active_lights );
 
     cstring shadow_visibility_resource_name = "shadow_visibility";
     FrameGraphResourceInfo resource_info{ };
-    resource_info.set_external_texture_3d( gpu.swapchain_width, gpu.swapchain_height, scene.active_lights, VK_FORMAT_R16_SFLOAT, 0, filtered_visibility_texture );
+
+    const u32 adjusted_width = ceilu32( gpu.swapchain_width * texture_scale );
+    const u32 adjusted_height = ceilu32( gpu.swapchain_height * texture_scale );
+    resource_info.set_external_texture_3d( adjusted_width, adjusted_height, scene.active_lights, VK_FORMAT_R16_SFLOAT, 0, filtered_visibility_texture );
 
     shadow_visibility_resource = frame_graph->get_resource( shadow_visibility_resource_name );
     RASSERT( shadow_visibility_resource != nullptr );
@@ -2140,6 +2163,8 @@ void ShadowVisibilityPass::upload_gpu_data( RenderScene& scene ) {
         constants->filtered_visibility_texture = filtered_visibility_texture.index;
         constants->filetered_variation_texture = filtered_variation_texture.index;
         constants->frame_index = renderer->gpu->absolute_frame % 4;
+        constants->resolution_scale = texture_scale;
+        constants->resolution_scale_rcp = 1.0f / texture_scale;
 
         renderer->gpu->unmap_buffer( mb );
     }
@@ -3532,7 +3557,8 @@ struct alignas(16) GpuDDGIConstants {
 
     f32         hysteresis;
     f32         infinte_bounces_multiplier;
-    f32         pad[ 2 ];
+    i32         probe_update_offset;
+    i32         probe_update_count;
 
     vec3s       probe_grid_position;
     f32         probe_sphere_scale;
@@ -3568,25 +3594,25 @@ void IndirectPass::render( u32 current_frame_index, CommandBuffer* gpu_commands,
     if ( !enabled )
         return;
 
+    static i32 offsets_calculations_count = 24;
+    if ( render_scene->gi_recalculate_offsets ) {
+        offsets_calculations_count = 24;
+    }
+
     // Probe raytrace
     gpu_commands->push_marker( "RT" );
     gpu_commands->issue_texture_barrier( probe_raytrace_radiance_texture, RESOURCE_STATE_UNORDERED_ACCESS, 0, 1 );
     gpu_commands->bind_pipeline( probe_raytrace_pipeline );
     gpu_commands->bind_descriptor_set( &probe_raytrace_descriptor_set, 1, nullptr, 0 );
-    // TODO: dispatch size
-    const u32 probe_count = probe_count_x * probe_count_y * probe_count_z;
+    
+    // When calculating offsets, needs all the probes to be updated.
+    const u32 probe_count = offsets_calculations_count >= 0 ? get_total_probes() : per_frame_probe_updates;
     gpu_commands->trace_rays( probe_raytrace_pipeline, probe_rays, probe_count, 1 );
 
     gpu_commands->issue_texture_barrier( probe_raytrace_radiance_texture, RESOURCE_STATE_UNORDERED_ACCESS, 0, 1 );
     gpu_commands->pop_marker();
 
     // Calculate probe offsets
-    static i32 offsets_calculations_count = 24;
-
-    if ( render_scene->gi_recalculate_offsets ) {
-        offsets_calculations_count = 24;
-    }
-
     if ( offsets_calculations_count >= 0 ) {
         --offsets_calculations_count;
         gpu_commands->push_marker( "Offsets" );
@@ -3681,7 +3707,9 @@ void IndirectPass::prepare_draws( RenderScene& scene, FrameGraph* frame_graph, A
 
     GpuDevice& gpu = *renderer->gpu;
 
-    const u32 num_probes = probe_count_x * probe_count_y * probe_count_z;
+    per_frame_probe_updates = scene.gi_per_frame_probes_update;
+
+    const u32 num_probes = get_total_probes();
     // Cache count of probes for debug probe spheres drawing.
     scene.gi_total_probes = num_probes;
 
@@ -3756,7 +3784,7 @@ void IndirectPass::prepare_draws( RenderScene& scene, FrameGraph* frame_graph, A
 
         DescriptorSetLayoutHandle layout = gpu.get_descriptor_set_layout( probe_raytrace_pipeline, k_material_descriptor_set_index );
         DescriptorSetCreation ds_creation{};
-        ds_creation.reset().set_layout( layout ).set_as( scene.tlas, 26 ).buffer( ddgi_constants_buffer, 40 )
+        ds_creation.reset().set_layout( layout ).set_as( scene.tlas, 26 ).buffer( ddgi_constants_buffer, 55 )
                    .buffer( scene.lights_list_sb, 27).buffer( ddgi_probe_status_buffer, 43 );
         scene.add_scene_descriptors( ds_creation, pass );
         scene.add_mesh_descriptors( ds_creation, pass );
@@ -3770,7 +3798,7 @@ void IndirectPass::prepare_draws( RenderScene& scene, FrameGraph* frame_graph, A
         probe_grid_update_irradiance_pipeline = pass1.pipeline;
 
         layout = gpu.get_descriptor_set_layout( probe_grid_update_irradiance_pipeline, k_material_descriptor_set_index );
-        ds_creation.reset().set_layout( layout ).buffer(ddgi_constants_buffer, 40).buffer( ddgi_probe_status_buffer, 43 )
+        ds_creation.reset().set_layout( layout ).buffer(ddgi_constants_buffer, 55).buffer( ddgi_probe_status_buffer, 43 )
                    .texture(probe_grid_irradiance_texture, 41).texture(probe_grid_visibility_texture, 42);
         scene.add_scene_descriptors( ds_creation, pass1 );
         probe_grid_update_descriptor_set = gpu.create_descriptor_set( ds_creation );
@@ -3800,7 +3828,7 @@ void IndirectPass::prepare_draws( RenderScene& scene, FrameGraph* frame_graph, A
         sample_irradiance_pipeline = pass5.pipeline;
 
         layout = gpu.get_descriptor_set_layout( sample_irradiance_pipeline, k_material_descriptor_set_index );
-        ds_creation.reset().set_layout( layout ).buffer( ddgi_constants_buffer, 40 ).buffer( ddgi_probe_status_buffer, 43 );
+        ds_creation.reset().set_layout( layout ).buffer( ddgi_constants_buffer, 55 ).buffer( ddgi_probe_status_buffer, 43 );
         scene.add_scene_descriptors( ds_creation, pass5 );
         sample_irradiance_descriptor_set = gpu.create_descriptor_set( ds_creation );
     }
@@ -3859,11 +3887,17 @@ void IndirectPass::upload_gpu_data( RenderScene& scene ) {
         gpu_constants->visibility_texture_width = visibility_atlas_width;
         gpu_constants->visibility_texture_height = visibility_atlas_height;
         gpu_constants->visibility_side_length = visibility_probe_size;
+        gpu_constants->probe_update_offset = probe_update_offset;
+        gpu_constants->probe_update_count = per_frame_probe_updates;
 
         const f32 rotation_scaler = 0.001f;
         gpu_constants->random_rotation = glms_euler_xyz( { get_random_value( -1,1 ) * rotation_scaler, get_random_value( -1,1 ) * rotation_scaler, get_random_value( -1,1 ) * rotation_scaler } );
 
         gpu.unmap_buffer( cb_map );
+
+        const u32 num_probes = probe_count_x * probe_count_y * probe_count_z;
+        probe_update_offset = ( probe_update_offset + per_frame_probe_updates ) % num_probes;
+        per_frame_probe_updates = scene.gi_per_frame_probes_update;
     }
 }
 
