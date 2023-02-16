@@ -87,7 +87,7 @@ else()
         dl
         pthread
         assimp
-        /home/marco/projects/SDL/Build/Debug/install/lib/libSDL2-2.0d.so)
+        SDL2::SDL2)
 endif()
 
 target_link_libraries(Chapter4 PRIVATE
