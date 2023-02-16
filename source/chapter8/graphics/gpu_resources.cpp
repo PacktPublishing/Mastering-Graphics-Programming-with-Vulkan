@@ -1796,7 +1796,7 @@ VkFormat util_string_to_vk_format( cstring format ) {
     return VK_FORMAT_UNDEFINED;
 }
 
-cstring raptor::ResourceStateName( ResourceState value ) {
+cstring ResourceStateName( ResourceState value ) {
     switch ( value ) {
         case ( RESOURCE_STATE_UNDEFINED ):
         {
