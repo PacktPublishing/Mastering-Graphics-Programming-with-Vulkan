@@ -584,7 +584,7 @@ void GpuDevice::init( const DeviceCreation& creation ) {
         .set_min_mag_mip( VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR ).set_name( "Sampler Default" );
     default_sampler = create_sampler( sc );
 
-    sizet fullscreen_size = 3 * 3 * sizeof( float );
+    u32 fullscreen_size = 3 * 3 * sizeof( float );
     BufferCreation fullscreen_vb_creation = { VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, ResourceUsageType::Immutable, fullscreen_size, 1, 0, nullptr, "Fullscreen_vb" };
     fullscreen_vertex_buffer = create_buffer( fullscreen_vb_creation );
 
