@@ -744,7 +744,7 @@ void GpuDevice::init( const GpuDeviceCreation& creation ) {
         vkCreateCommandPool( vulkan_device, &cmd_pool_info, vulkan_allocation_callbacks, &pool.vulkan_command_pool );
 
         // Create timestamp query pool used for GPU timings.
-        VkQueryPoolCreateInfo timestamp_pool_info{ VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO, nullptr, 0, VK_QUERY_TYPE_TIMESTAMP, creation.gpu_time_queries_per_frame * 2, 0 };
+        VkQueryPoolCreateInfo timestamp_pool_info{ VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO, nullptr, 0, VK_QUERY_TYPE_TIMESTAMP, creation.gpu_time_queries_per_frame * 2u, 0 };
         vkCreateQueryPool( vulkan_device, &timestamp_pool_info, vulkan_allocation_callbacks, &pool.vulkan_timestamp_query_pool );
 
         // Create pipeline statistics query pool

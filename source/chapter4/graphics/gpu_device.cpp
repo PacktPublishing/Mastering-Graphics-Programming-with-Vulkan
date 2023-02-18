@@ -519,7 +519,7 @@ void GpuDevice::init( const DeviceCreation& creation ) {
     }
 
     // Create timestamp query pool used for GPU timings.
-    VkQueryPoolCreateInfo vqpci{ VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO, nullptr, 0, VK_QUERY_TYPE_TIMESTAMP, creation.gpu_time_queries_per_frame * 2 * k_max_frames, 0 };
+    VkQueryPoolCreateInfo vqpci{ VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO, nullptr, 0, VK_QUERY_TYPE_TIMESTAMP, creation.gpu_time_queries_per_frame * 2u * k_max_frames, 0 };
     vkCreateQueryPool( vulkan_device, &vqpci, vulkan_allocation_callbacks, &vulkan_timestamp_query_pool );
 
     //// Init pools
