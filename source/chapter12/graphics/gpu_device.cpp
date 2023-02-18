@@ -208,7 +208,7 @@ static VkBool32 debug_utils_callback( VkDebugUtilsMessageSeverityFlagBitsEXT sev
 
 
     if ( triggerBreak ) {
-       __debugbreak();
+       // __debugbreak();
     }
 
     return VK_FALSE;
