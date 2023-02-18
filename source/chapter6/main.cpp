@@ -569,7 +569,7 @@ int main( int argc, char** argv ) {
 
                 vec4s aabb{minx.x / minx.y * game_camera.camera.projection.m00, miny.x / miny.y * game_camera.camera.projection.m11,
                            maxx.x / maxx.y * game_camera.camera.projection.m00, maxy.x / maxy.y * game_camera.camera.projection.m11};
-                vec4s aabb2{ aabb.x * 0.5 + 0.5, aabb.w * -0.5 + 0.5, aabb.z * 0.5 + 0.5, aabb.y * -0.5 + 0.5 };
+                vec4s aabb2{ aabb.x * 0.5f + 0.5f, aabb.w * -0.5f + 0.5f, aabb.z * 0.5f + 0.5f, aabb.y * -0.5f + 0.5f };
 
                 vec3s left, right, top, bottom;
                 getBoundsForAxis( vec3s{ 1,0,0 }, { view_space_pos.x, view_space_pos.y, view_space_pos.z }, radius, game_camera.camera.near_plane, left, right );
