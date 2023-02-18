@@ -10,6 +10,7 @@
 #endif
 #include <vulkan/vulkan.h>
 
+#define VMA_VULKAN_VERSION 1001000
 #include "external/vk_mem_alloc.h"
 
 #include "graphics/gpu_resources.hpp"

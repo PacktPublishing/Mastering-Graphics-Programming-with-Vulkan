@@ -5,6 +5,7 @@
 #include "graphics/gpu_enum.hpp"
 
 #include <vulkan/vulkan.h>
+#define VMA_VULKAN_VERSION 1001000
 #include "external/vk_mem_alloc.h"
 
 namespace raptor {

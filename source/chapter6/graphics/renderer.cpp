@@ -7,6 +7,7 @@
 #include "foundation/file.hpp"
 
 #include "external/imgui/imgui.h"
+#define VMA_VULKAN_VERSION 1001000
 #include "external/vk_mem_alloc.h"
 
 #include <mutex>

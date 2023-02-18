@@ -13,6 +13,7 @@
 #include <windows.h>
 #endif
 
+#define VMA_VULKAN_VERSION 1001000
 #include "external/vk_mem_alloc.h"
 
 template<class T>
@@ -50,6 +51,7 @@ constexpr const T& raptor_max( const T& a, const T& b ) {
 //#define VMA_DEBUG_LOG rprintret
 
 #define VMA_IMPLEMENTATION
+#define VMA_VULKAN_VERSION 1001000
 #include "external/vk_mem_alloc.h"
 
 // SDL and Vulkan headers
