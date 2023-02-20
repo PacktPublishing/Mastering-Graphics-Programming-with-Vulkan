@@ -16,7 +16,7 @@ namespace raptor {
         f32                         b() const                               { return ( ( abgr >> 16 ) & 0xff ) / 255.f; }
         f32                         a() const                               { return ( ( abgr >> 24 ) & 0xff ) / 255.f; }
 
-        Color                       operator=( const u32 color )            { abgr = color; }
+        Color                       operator=( const u32 color )            { abgr = color; return *this; }
 
         static u32                  from_u8( u8 r, u8 g, u8 b, u8 a )       { return ( r | ( g << 8 ) | ( b << 16 ) | ( a << 24 ) ); }
 

@@ -486,7 +486,7 @@ struct RenderPassCreation {
     VkFormat                        depth_stencil_format = VK_FORMAT_UNDEFINED;
     VkImageLayout                   depth_stencil_final_layout;
 
-    u16                             shading_rate_image_index = k_invalid_index;
+    u32                             shading_rate_image_index = k_invalid_index;
 
     RenderPassOperation::Enum       depth_operation     = RenderPassOperation::DontCare;
     RenderPassOperation::Enum       stencil_operation   = RenderPassOperation::DontCare;
