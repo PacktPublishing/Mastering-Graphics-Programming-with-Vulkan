@@ -38,6 +38,8 @@ The code has been tested with the following software:
 This repository includes a submodule that makes it easier to get glTF models. To make sure the submodule is initialized properly, run the following command when cloning the repository:
 `git clone --recurse-submodules https://github.com/PacktPublishing/Mastering-Graphics-Programming-with-Vulkan`
 
+To download the glTF assets using the bootstrap script, run the following command: `python ./bootstrap.py`
+
 Alternatively, you get manually download the models from https://github.com/KhronosGroup/glTF-Sample-Models. We tested only only a subset of glTF 2.0 models.
 
 ### Windows
