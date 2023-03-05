@@ -46,6 +46,9 @@ Alternatively, you get manually download the models from https://github.com/Khro
 We provide a Visual Studio solution containing the code for all chapters, located at `project\RaptorEngine.sln`.
 
 ### Linux
+We provide the assimp library as part of this repo, while the SDL library has to be installed manually. On Debian and Ubuntu this can be done as follows:
+`sudo apt install libsdl2-dev`
+
 Assuming you unpacked the Vulkan SDK in `~/vulkan/1.2.198.1`, you have to add the following lines to your `.bashrc` file:
 ```
 export VULKAN_SDK=~/vulkan/1.2.198.1/x86_64
