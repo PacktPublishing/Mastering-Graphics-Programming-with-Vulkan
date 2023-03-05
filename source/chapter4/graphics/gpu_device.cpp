@@ -232,30 +232,42 @@ void GpuDevice::init( const DeviceCreation& creation ) {
     result = vkEnumeratePhysicalDevices( vulkan_instance, &num_physical_device, gpus );
     check( result );
 
-    VkPhysicalDevice discrete_gpu = VK_NULL_HANDLE;
-    VkPhysicalDevice integrated_gpu = VK_NULL_HANDLE;
-    for ( u32 i = 0; i < num_physical_device; ++i ) {
-        VkPhysicalDevice physical_device = gpus[ i ];
-        vkGetPhysicalDeviceProperties( physical_device, &vulkan_physical_properties );
+    {
+      // Look for the FIRST discrete and integrated GPUs, if any.
+      VkPhysicalDevice first_discrete_gpu = VK_NULL_HANDLE;
+      VkPhysicalDevice first_integrated_gpu = VK_NULL_HANDLE;
 
-        if ( vulkan_physical_properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU ) {
-            discrete_gpu = physical_device;
-            continue;
+      bool found_discrete = false;
+      bool found_integrated = false;
+      for (u32 i = 0; i < num_physical_device; ++i) {
+        VkPhysicalDevice physical_device = gpus[i];
+        vkGetPhysicalDeviceProperties(physical_device, &vulkan_physical_properties);
+
+        if (!found_discrete && vulkan_physical_properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
+          found_discrete = true;
+          first_discrete_gpu = physical_device;
+          continue;
         }
 
-        if ( vulkan_physical_properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU ) {
-            integrated_gpu = physical_device;
-            continue;
+        if (!found_integrated && vulkan_physical_properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU) {
+          found_integrated = true;
+          first_integrated_gpu = physical_device;
+          continue;
         }
-    }
+      }
 
-    if ( discrete_gpu != VK_NULL_HANDLE ) {
-        vulkan_physical_device = discrete_gpu;
-    } else if ( integrated_gpu != VK_NULL_HANDLE ) {
-        vulkan_physical_device = integrated_gpu;
-    } else {
-        RASSERTM( false, "Suitable GPU device not found!" );
+      // Set 'vulkan_physical_device' to first discrete GPU if one exists, otherwise the first integrated GPU.
+      // If neither discrete nor integrated GPUs found then assert and return.
+      if (found_discrete) {
+        vulkan_physical_device = first_discrete_gpu;
+      }
+      else if (found_integrated) {
+        vulkan_physical_device = first_integrated_gpu;
+      }
+      else {
+        RASSERTM(false, "Suitable GPU device not found!");
         return;
+      }
     }
 
     temp_allocator->free_marker( initial_temp_allocator_marker );
