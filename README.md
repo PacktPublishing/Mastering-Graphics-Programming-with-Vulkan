@@ -79,6 +79,9 @@ We also provide a PDF file that has color images of the screenshots/diagrams use
 
 * Vulkan Cookbook [[Packt]](https://www.packtpub.com/product/vulkan-cookbook/9781786468154?utm_source=github&utm_medium=repository&utm_campaign=9781786468154) [[Amazon]](https://www.amazon.com/dp/1786468158)
 
+## Errata 
+ * Page 6 (Almost at the end of the page):  **$ cmake --build build --target chapter1 -- -j 4** _should be_ **$ cmake --build build --target Chapter1 -- -j 4**
+
 ## Get to Know the Authors
 **Marco Castorina** first got familiar with Vulkan while working as a driver developer at Samsung. Later he developed a 2D and 3D renderer in Vulkan from scratch for a leading media-server company. He recently joined the games graphics performance team at AMD. In his spare time, he keeps up to date with the latest techniques in real-time graphics. He also likes cooking and playing
 guitar.
