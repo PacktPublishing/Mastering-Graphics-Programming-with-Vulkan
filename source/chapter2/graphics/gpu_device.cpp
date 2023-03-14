@@ -1974,7 +1974,6 @@ static void vulkan_create_swapchain_pass( GpuDevice& gpu, const RenderPassCreati
     for ( size_t i = 0; i < gpu.vulkan_swapchain_image_count; i++ ) {
         add_image_barrier( command_buffer->vk_command_buffer, gpu.vulkan_swapchain_images[ i ], RESOURCE_STATE_UNDEFINED, RESOURCE_STATE_PRESENT, 0, 1, false );
     }
-    add_image_barrier( command_buffer->vk_command_buffer, depth_texture_vk->vk_image, RESOURCE_STATE_UNDEFINED, RESOURCE_STATE_PRESENT, 0, 1, true );
 
     vkEndCommandBuffer( command_buffer->vk_command_buffer );
 
