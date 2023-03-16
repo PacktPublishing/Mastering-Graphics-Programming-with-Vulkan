@@ -144,7 +144,7 @@ struct GpuDevice : public Service {
     void                            set_buffer_global_offset( BufferHandle buffer, u32 offset );
 
     // Command Buffers ///////////////////////////////////////////////////
-    CommandBuffer*                  get_command_buffer( u32 thread_index, u32 frame_index, bool begin );
+    CommandBuffer*                  get_command_buffer( u32 thread_index, u32 frame_index, bool begin, bool compute = false );
     CommandBuffer*                  get_secondary_command_buffer( u32 thread_index, u32 frame_index );
 
     void                            queue_command_buffer( CommandBuffer* command_buffer );          // Queue command buffer that will not be executed until present is called.
@@ -277,6 +277,7 @@ struct GpuDevice : public Service {
     FramebufferHandle               vulkan_swapchain_framebuffers[ k_max_swapchain_images ]{ k_invalid_index, k_invalid_index, k_invalid_index };
 
     Array<GpuThreadFramePools>      thread_frame_pools;
+    Array<GpuThreadFramePools>      compute_frame_pools;
 
     // Per frame synchronization
     VkSemaphore                     vulkan_render_complete_semaphore[ k_max_frames ];

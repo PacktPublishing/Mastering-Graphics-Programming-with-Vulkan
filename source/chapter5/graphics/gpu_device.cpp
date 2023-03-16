@@ -599,7 +599,7 @@ void GpuDevice::init( const GpuDeviceCreation& creation ) {
     thread_frame_pools.init( allocator, num_pools, num_pools );
 
     gpu_time_queries_manager = ( GPUTimeQueriesManager* )( memory );
-    gpu_time_queries_manager->init( thread_frame_pools.data, allocator, creation.gpu_time_queries_per_frame, creation.num_threads, k_max_frames );
+    gpu_time_queries_manager->init( thread_frame_pools.data, allocator, creation.gpu_time_queries_per_frame, creation.num_threads + 1 /*compute*/, k_max_frames );
 
     for ( u32 i = 0; i < thread_frame_pools.size; ++i ) {
         GpuThreadFramePools& pool = thread_frame_pools[ i ];
@@ -626,6 +626,24 @@ void GpuDevice::init( const GpuDeviceCreation& creation ) {
             VK_QUERY_PIPELINE_STATISTIC_FRAGMENT_SHADER_INVOCATIONS_BIT |
             VK_QUERY_PIPELINE_STATISTIC_COMPUTE_SHADER_INVOCATIONS_BIT;
         vkCreateQueryPool( vulkan_device, &statistics_pool_info, vulkan_allocation_callbacks, &pool.vulkan_pipeline_stats_query_pool);
+    }
+
+    // Create compute command pools and command buffers
+    compute_frame_pools.init(allocator, k_max_frames, k_max_frames);
+
+    for (u32 i = 0; i < compute_frame_pools.size; ++i) {
+        GpuThreadFramePools& pool = compute_frame_pools[i];
+        pool.time_queries = &gpu_time_queries_manager->query_trees[thread_frame_pools.size + i];
+
+        VkCommandPoolCreateInfo cmd_pool_info = { VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO, nullptr };
+        cmd_pool_info.queueFamilyIndex = vulkan_compute_queue_family;
+        cmd_pool_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+
+        vkCreateCommandPool(vulkan_device, &cmd_pool_info, vulkan_allocation_callbacks, &pool.vulkan_command_pool);
+
+        // Create timestamp query pool used for GPU timings.
+        VkQueryPoolCreateInfo timestamp_pool_info{ VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO, nullptr, 0, VK_QUERY_TYPE_TIMESTAMP, creation.gpu_time_queries_per_frame * 2u, 0 };
+        vkCreateQueryPool(vulkan_device, &timestamp_pool_info, vulkan_allocation_callbacks, &pool.vulkan_timestamp_query_pool);
     }
 
     // Create resource pools
@@ -927,6 +945,12 @@ void GpuDevice::shutdown() {
         vkDestroyQueryPool( vulkan_device, pool.vulkan_timestamp_query_pool, vulkan_allocation_callbacks );
         vkDestroyQueryPool( vulkan_device, pool.vulkan_pipeline_stats_query_pool, vulkan_allocation_callbacks );
         vkDestroyCommandPool( vulkan_device, pool.vulkan_command_pool, vulkan_allocation_callbacks );
+    }
+
+    for (u32 i = 0; i < compute_frame_pools.size; ++i) {
+        GpuThreadFramePools& pool = compute_frame_pools[i];
+        vkDestroyQueryPool(vulkan_device, pool.vulkan_timestamp_query_pool, vulkan_allocation_callbacks);
+        vkDestroyCommandPool(vulkan_device, pool.vulkan_command_pool, vulkan_allocation_callbacks);
     }
 
     thread_frame_pools.shutdown();
@@ -3577,8 +3601,8 @@ void GpuDevice::queue_command_buffer( CommandBuffer* command_buffer ) {
 
 //
 //
-CommandBuffer* GpuDevice::get_command_buffer( u32 thread_index, u32 frame_index, bool begin ) {
-    CommandBuffer* cb = command_buffer_ring.get_command_buffer( frame_index, thread_index, begin );
+CommandBuffer* GpuDevice::get_command_buffer( u32 thread_index, u32 frame_index, bool begin, bool compute /*= false*/) {
+    CommandBuffer* cb = command_buffer_ring.get_command_buffer( frame_index, thread_index, begin, compute );
     return cb;
 }
 
