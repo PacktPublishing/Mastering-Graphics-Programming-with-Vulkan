@@ -327,29 +327,69 @@ void GpuDevice::init( const GpuDeviceCreation& creation ) {
 
     VkPhysicalDevice discrete_gpu = VK_NULL_HANDLE;
     VkPhysicalDevice integrated_gpu = VK_NULL_HANDLE;
+    int discete_gpu_device_idx = -1;
+    int integrated_gpu_device_idx = -1;
+    bool foundDiscrete = false;
+    bool foundIntegrated = false;
     for ( u32 i = 0; i < num_physical_device; ++i ) {
         VkPhysicalDevice physical_device = gpus[ i ];
         vkGetPhysicalDeviceProperties( physical_device, &vulkan_physical_properties );
 
-        if ( vulkan_physical_properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU ) {
-            discrete_gpu = physical_device;
-            continue;
+        query_device_queues(physical_device, temporary_allocator);
+
+        VkBool32 surface_supported;
+        SDL_Window* window = (SDL_Window*)creation.window;
+
+        VkSurfaceKHR vulkan_window_test_surface;
+        if (SDL_Vulkan_CreateSurface(window, vulkan_instance, &vulkan_window_test_surface) == SDL_FALSE) {
+          rprint("Failed to create Vulkan surface for device %d.\n", i);
+          continue;
+        }
+        vkGetPhysicalDeviceSurfaceSupportKHR(physical_device, vulkan_main_queue_family, vulkan_window_test_surface, &surface_supported);
+        vkDestroySurfaceKHR(vulkan_instance, vulkan_window_test_surface, vulkan_allocation_callbacks);
+
+        if (surface_supported != VK_TRUE) {
+          rprint("WSI surface not supported on physical device %d, skipping\n", i);
+          continue;
         }
 
-        if ( vulkan_physical_properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU ) {
-            integrated_gpu = physical_device;
-            continue;
+
+        if (!foundDiscrete && vulkan_physical_properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+        { // First discrete device which supports surface creation
+          foundDiscrete = true;
+          discrete_gpu = physical_device;
+          discete_gpu_device_idx = i;
+          continue;
+        }
+
+        if (!foundIntegrated && vulkan_physical_properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
+        { // First integrated device which supports surface creation
+          foundIntegrated = true;
+          integrated_gpu = physical_device;
+          integrated_gpu_device_idx = i;
+          continue;
         }
     }
 
-    if ( discrete_gpu != VK_NULL_HANDLE ) {
-        vulkan_physical_device = discrete_gpu;
-    } else if ( integrated_gpu != VK_NULL_HANDLE ) {
-        vulkan_physical_device = integrated_gpu;
-    } else {
-        RASSERTM( false, "Suitable GPU device not found!" );
-        return;
+    // Select discete GPU in preference to integrated.
+    if (foundDiscrete)
+    {
+      vulkan_physical_device = discrete_gpu;
+      rprint("Selected discrete GPU (device %d)\n", discete_gpu_device_idx);
     }
+    else if (foundIntegrated)
+    {
+      vulkan_physical_device = integrated_gpu;
+      rprint("Selected integrated GPU (device %d)\n", integrated_gpu_device_idx);
+    }
+    else {
+      RASSERTM(false, "Suitable GPU device not found!");
+      return;
+    }
+
+    // Having selected a device, query queues again for the specific device we chose.
+    // (So we don't have stale results from the last device checked above)
+    query_device_queues(vulkan_physical_device, temp_allocator);
 
     temp_allocator->free_marker( initial_temp_allocator_marker );
 
@@ -467,55 +507,6 @@ void GpuDevice::init( const GpuDeviceCreation& creation ) {
     //bindless_supported = false;
 
     //////// Create logical device
-    u32 queue_family_count = 0;
-    vkGetPhysicalDeviceQueueFamilyProperties( vulkan_physical_device, &queue_family_count, nullptr );
-
-    VkQueueFamilyProperties* queue_families = ( VkQueueFamilyProperties* )ralloca( sizeof( VkQueueFamilyProperties ) * queue_family_count, temp_allocator );
-    vkGetPhysicalDeviceQueueFamilyProperties( vulkan_physical_device, &queue_family_count, queue_families );
-
-    u32 main_queue_family_index = u32_max, transfer_queue_family_index = u32_max, compute_queue_family_index = u32_max, present_queue_family_index = u32_max;
-    u32 compute_queue_index = u32_max;
-    for ( u32 fi = 0; fi < queue_family_count; ++fi) {
-        VkQueueFamilyProperties queue_family = queue_families[ fi ];
-
-        if ( queue_family.queueCount == 0 ) {
-            continue;
-        }
-#if defined(_DEBUG)
-        rprint( "Family %u, flags %u queue count %u\n", fi, queue_family.queueFlags, queue_family.queueCount );
-#endif // DEBUG
-
-        // Search for main queue that should be able to do all work (graphics, compute and transfer)
-        if ( (queue_family.queueFlags & ( VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT )) == ( VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT ) ) {
-            main_queue_family_index = fi;
-
-            RASSERT( ( queue_family.queueFlags & VK_QUEUE_SPARSE_BINDING_BIT ) == VK_QUEUE_SPARSE_BINDING_BIT );
-
-            if ( queue_family.queueCount > 1 ) {
-                compute_queue_family_index = fi;
-                compute_queue_index = 1;
-            }
-
-            continue;
-        }
-
-        // Search for another compute queue if graphics queue exposes only one queue
-        if ( ( queue_family.queueFlags & VK_QUEUE_COMPUTE_BIT ) && compute_queue_index == u32_max ) {
-            compute_queue_family_index = fi;
-            compute_queue_index = 0;
-        }
-
-        // Search for transfer queue
-        if ( ( queue_family.queueFlags & VK_QUEUE_COMPUTE_BIT ) == 0 && (queue_family.queueFlags & VK_QUEUE_TRANSFER_BIT) ) {
-            transfer_queue_family_index = fi;
-            continue;
-        }
-    }
-
-    // Cache family indices
-    vulkan_main_queue_family = main_queue_family_index;
-    vulkan_compute_queue_family = compute_queue_family_index;
-    vulkan_transfer_queue_family = transfer_queue_family_index;
 
     Array<const char*> device_extensions;
     device_extensions.init( temporary_allocator, 2 );
@@ -568,22 +559,22 @@ void GpuDevice::init( const GpuDeviceCreation& creation ) {
 
     VkDeviceQueueCreateInfo& main_queue = queue_info[ queue_count++ ];
     main_queue.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-    main_queue.queueFamilyIndex = main_queue_family_index;
-    main_queue.queueCount = compute_queue_family_index == main_queue_family_index ? 2 : 1;
+    main_queue.queueFamilyIndex = vulkan_main_queue_family;
+    main_queue.queueCount = vulkan_compute_queue_family == vulkan_main_queue_family ? 2 : 1;
     main_queue.pQueuePriorities = queue_priority;
 
-    if ( compute_queue_family_index != main_queue_family_index ) {
+    if (vulkan_compute_queue_family != vulkan_main_queue_family ) {
         VkDeviceQueueCreateInfo& compute_queue = queue_info[ queue_count++ ];
-        compute_queue.queueFamilyIndex = compute_queue_family_index;
+        compute_queue.queueFamilyIndex = vulkan_compute_queue_family;
         compute_queue.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
         compute_queue.queueCount = 1;
         compute_queue.pQueuePriorities = queue_priority;
     }
 
-    if ( vulkan_transfer_queue_family < queue_family_count ) {
+    if ( vulkan_transfer_queue_family < vulkan_queue_family_count ) {
         VkDeviceQueueCreateInfo& transfer_queue_info = queue_info[ queue_count++ ];
         transfer_queue_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-        transfer_queue_info.queueFamilyIndex = transfer_queue_family_index;
+        transfer_queue_info.queueFamilyIndex = vulkan_transfer_queue_family;
         transfer_queue_info.queueCount = 1;
         transfer_queue_info.pQueuePriorities = queue_priority;
     }
@@ -724,14 +715,14 @@ void GpuDevice::init( const GpuDeviceCreation& creation ) {
     }
 
     // Get main queue
-    vkGetDeviceQueue( vulkan_device, main_queue_family_index, 0, &vulkan_main_queue );
+    vkGetDeviceQueue( vulkan_device, vulkan_main_queue_family, 0, &vulkan_main_queue );
 
     // TODO(marco): handle case where we can't create a separate compute queue
-    vkGetDeviceQueue( vulkan_device, compute_queue_family_index, compute_queue_index, &vulkan_compute_queue );
+    vkGetDeviceQueue( vulkan_device, vulkan_compute_queue_family, vulkan_compute_queue_index, &vulkan_compute_queue );
 
     // Get transfer queue if present
-    if ( vulkan_transfer_queue_family < queue_family_count ) {
-        vkGetDeviceQueue( vulkan_device, transfer_queue_family_index, 0, &vulkan_transfer_queue );
+    if ( vulkan_transfer_queue_family < vulkan_queue_family_count ) {
+        vkGetDeviceQueue( vulkan_device, vulkan_transfer_queue_family, 0, &vulkan_transfer_queue );
     }
 
     //////// Create drawable surface
@@ -4862,6 +4853,59 @@ PagePool* GpuDevice::access_page_pool( PagePoolHandle page_pool ) {
 const PagePool* GpuDevice::access_page_pool( PagePoolHandle page_pool ) const {
     return (PagePool*)page_pools.access_resource( page_pool.index );
 }
+
+
+void GpuDevice::query_device_queues(VkPhysicalDevice vulkan_physical_device, Allocator* temp_allocator)
+{
+  vulkan_queue_family_count = 0;
+  vkGetPhysicalDeviceQueueFamilyProperties(vulkan_physical_device, &vulkan_queue_family_count, nullptr);
+
+  VkQueueFamilyProperties* queue_families = (VkQueueFamilyProperties*)ralloca(sizeof(VkQueueFamilyProperties) * vulkan_queue_family_count, temp_allocator);
+  vkGetPhysicalDeviceQueueFamilyProperties(vulkan_physical_device, &vulkan_queue_family_count, queue_families);
+
+  vulkan_main_queue_family = u32_max;
+  vulkan_transfer_queue_family = u32_max;
+  vulkan_compute_queue_family = u32_max;
+  // u32 present_queue_family_index = u32_max;
+  vulkan_compute_queue_index = u32_max;
+  for (u32 fi = 0; fi < vulkan_queue_family_count; ++fi) {
+    VkQueueFamilyProperties queue_family = queue_families[fi];
+
+    if (queue_family.queueCount == 0) {
+      continue;
+    }
+#if defined(_DEBUG)
+    rprint("Family %u, flags %u queue count %u\n", fi, queue_family.queueFlags, queue_family.queueCount);
+#endif // DEBUG
+
+    // Search for main queue that should be able to do all work (graphics, compute and transfer)
+    if ((queue_family.queueFlags & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT)) == (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT)) {
+      vulkan_main_queue_family = fi;
+
+      RASSERT((queue_family.queueFlags & VK_QUEUE_SPARSE_BINDING_BIT) == VK_QUEUE_SPARSE_BINDING_BIT);
+
+      if (queue_family.queueCount > 1) {
+        vulkan_compute_queue_family = fi;
+        vulkan_compute_queue_index = 1;
+      }
+
+      continue;
+    }
+
+    // Search for another compute queue if graphics queue exposes only one queue
+    if ((queue_family.queueFlags & VK_QUEUE_COMPUTE_BIT) && vulkan_compute_queue_index == u32_max) {
+      vulkan_compute_queue_family = fi;
+      vulkan_compute_queue_index = 0;
+    }
+
+    // Search for transfer queue
+    if ((queue_family.queueFlags & VK_QUEUE_COMPUTE_BIT) == 0 && (queue_family.queueFlags & VK_QUEUE_TRANSFER_BIT)) {
+      vulkan_transfer_queue_family = fi;
+      continue;
+    }
+  }
+}
+
 
 // GpuDeviceCreation //////////////////////////////////////////////////////
 GpuDeviceCreation& GpuDeviceCreation::set_window( u32 width_, u32 height_, void* handle ) {

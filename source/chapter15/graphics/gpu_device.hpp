@@ -320,6 +320,8 @@ struct GpuDevice : public Service {
     u32                             vulkan_main_queue_family;
     u32                             vulkan_compute_queue_family;
     u32                             vulkan_transfer_queue_family;
+    u32                             vulkan_queue_family_count = 0; // The number of queue families supported on this device
+    u32                             vulkan_compute_queue_index = u32_max; // Compute queue index on chosen family. Indices are implied 0 for other queue types.
     VkDescriptorPool                vulkan_descriptor_pool;
 
     // [TAG: BINDLESS]
@@ -466,6 +468,9 @@ struct GpuDevice : public Service {
     PagePool*                       access_page_pool( PagePoolHandle page_pool );
     const PagePool*                 access_page_pool( PagePoolHandle page_pool ) const;
 
+private:
+    // For the given physical device, determines suitable queues
+    void query_device_queues(VkPhysicalDevice vulkan_physical_device, Allocator* temp_allocator);
 }; // struct GpuDevice
 
 
