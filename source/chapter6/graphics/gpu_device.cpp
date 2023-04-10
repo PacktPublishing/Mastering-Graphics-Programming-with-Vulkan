@@ -345,7 +345,7 @@ void GpuDevice::init( const GpuDeviceCreation& creation ) {
 #endif // DEBUG
 
         // Search for main queue that should be able to do all work (graphics, compute and transfer)
-        if ( (queue_family.queueFlags & ( VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT )) == ( VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT ) ) {
+        if ( (queue_family.queueFlags & ( VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT  )) == ( VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT  ) ) {
             main_queue_family_index = fi;
 
             if ( queue_family.queueCount > 1 ) {
@@ -1064,7 +1064,7 @@ static void vulkan_create_texture( GpuDevice& gpu, const TextureCreation& creati
     // Create default texture view.
     TextureViewCreation tvc;
     tvc.set_mips( 0, creation.mip_level_count ).set_array( 0, creation.array_layer_count ).set_name( creation.name );
-    
+
     vulkan_create_texture_view( gpu, tvc, texture );
     texture->state = RESOURCE_STATE_UNDEFINED;
 

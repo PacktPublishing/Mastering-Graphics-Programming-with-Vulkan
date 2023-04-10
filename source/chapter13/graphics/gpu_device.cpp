@@ -486,7 +486,7 @@ void GpuDevice::init( const GpuDeviceCreation& creation ) {
 #endif // DEBUG
 
         // Search for main queue that should be able to do all work (graphics, compute and transfer)
-        if ( (queue_family.queueFlags & ( VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT )) == ( VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT ) ) {
+        if ( (queue_family.queueFlags & ( VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT  )) == ( VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT  ) ) {
             main_queue_family_index = fi;
 
             RASSERT( ( queue_family.queueFlags & VK_QUEUE_SPARSE_BINDING_BIT ) == VK_QUEUE_SPARSE_BINDING_BIT );
@@ -3589,7 +3589,7 @@ void GpuDevice::resize_texture_3d( TextureHandle texture, u32 width, u32 height,
     // Update handle so it can be used to update bindless to dummy texture
     // and delete the old image and image view.
     vk_texture_to_delete->handle = texture_to_delete;
-    
+
     // Re-create image in place.
     TextureCreation tc;
     tc.set_flags( vk_texture->flags ).set_format_type( vk_texture->vk_format, vk_texture->type )

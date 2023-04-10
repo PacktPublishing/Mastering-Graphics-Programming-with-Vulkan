@@ -479,7 +479,7 @@ void GpuDevice::init( const GpuDeviceCreation& creation ) {
 #endif // DEBUG
 
         // Search for main queue that should be able to do all work (graphics, compute and transfer)
-        if ( (queue_family.queueFlags & ( VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT )) == ( VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT ) ) {
+        if ( (queue_family.queueFlags & ( VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT  )) == ( VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT  ) ) {
             main_queue_family_index = fi;
 
             RASSERT( ( queue_family.queueFlags & VK_QUEUE_SPARSE_BINDING_BIT ) == VK_QUEUE_SPARSE_BINDING_BIT );
@@ -695,7 +695,7 @@ void GpuDevice::init( const GpuDeviceCreation& creation ) {
 
         vkCreateAccelerationStructureKHR = ( PFN_vkCreateAccelerationStructureKHR )vkGetDeviceProcAddr( vulkan_device, "vkCreateAccelerationStructureKHR" );
         vkDestroyAccelerationStructureKHR = ( PFN_vkDestroyAccelerationStructureKHR )vkGetDeviceProcAddr( vulkan_device, "vkDestroyAccelerationStructureKHR" );
-        
+
         vkCmdBuildAccelerationStructuresKHR = ( PFN_vkCmdBuildAccelerationStructuresKHR )vkGetDeviceProcAddr( vulkan_device, "vkCmdBuildAccelerationStructuresKHR" );
         vkCmdBuildAccelerationStructuresIndirectKHR = ( PFN_vkCmdBuildAccelerationStructuresIndirectKHR )vkGetDeviceProcAddr( vulkan_device, "vkCmdBuildAccelerationStructuresIndirectKHR" );
         vkCmdWriteAccelerationStructuresPropertiesKHR = ( PFN_vkCmdWriteAccelerationStructuresPropertiesKHR )vkGetDeviceProcAddr( vulkan_device, "vkCmdWriteAccelerationStructuresPropertiesKHR" );
@@ -1479,7 +1479,7 @@ TextureHandle GpuDevice::create_texture( const TextureCreation& creation ) {
     if ( resource_index == k_invalid_index ) {
         return handle;
     }
-    
+
     resource_tracker.track_create_resource( ResourceUpdateType::Texture, resource_index, creation.name );
 
     Texture* texture = access_texture( handle );
@@ -3556,7 +3556,7 @@ void GpuDevice::resize_texture( TextureHandle texture, u32 width, u32 height ) {
     // Update handle so it can be used to update bindless to dummy texture
     // and delete the old image and image view.
     vk_texture_to_delete->handle = texture_to_delete;
-    
+
     // Re-create image in place.
     TextureCreation tc;
     tc.set_flags( vk_texture->flags ).set_format_type( vk_texture->vk_format, vk_texture->type )
