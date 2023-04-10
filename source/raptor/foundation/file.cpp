@@ -422,7 +422,7 @@ FileReadResult file_read_text( cstring filename, Allocator* allocator ) {
 
         result.data[ bytes_read ] = 0;
 
-        result.size = filesize;
+        result.size = bytes_read;
 
         fclose( file );
     }
