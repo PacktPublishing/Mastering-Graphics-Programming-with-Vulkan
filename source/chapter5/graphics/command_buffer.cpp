@@ -956,6 +956,9 @@ void CommandBufferManager::init( GpuDevice* gpu_, u32 num_threads ) {
     const u32 total_secondary_buffers = total_pools * k_secondary_command_buffers_count;
     secondary_command_buffers.init( gpu->allocator, total_secondary_buffers );
 
+    const u32 total_compute_buffers = k_max_frames;
+    compute_command_buffers.init( gpu->allocator, k_max_frames, k_max_frames );
+
     for ( u32 i = 0; i < total_buffers; i++ ) {
         VkCommandBufferAllocateInfo cmd = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO, nullptr };
 
@@ -1001,6 +1004,21 @@ void CommandBufferManager::init( GpuDevice* gpu_, u32 num_threads ) {
         }
     }
 
+    for (u32 i = 0; i < total_compute_buffers; i++) {
+        VkCommandBufferAllocateInfo cmd = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO, nullptr };
+
+        cmd.commandPool = gpu->compute_frame_pools[ i ].vulkan_command_pool;
+        cmd.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        cmd.commandBufferCount = 1;
+
+        CommandBuffer& current_command_buffer = compute_command_buffers[ i ];
+        vkAllocateCommandBuffers( gpu->vulkan_device, &cmd, &current_command_buffer.vk_command_buffer );
+
+        current_command_buffer.handle = i;
+        current_command_buffer.thread_frame_pool = &gpu->compute_frame_pools[ i ];
+        current_command_buffer.init(gpu);
+    }
+
     //rprint( "Done\n" );
 }
 
@@ -1014,8 +1032,13 @@ void CommandBufferManager::shutdown() {
         secondary_command_buffers[ i ].shutdown();
     }
 
+    for (u32 i = 0; i < compute_command_buffers.size; ++i) {
+        compute_command_buffers[ i ].shutdown();
+    }
+
     command_buffers.shutdown();
     secondary_command_buffers.shutdown();
+    compute_command_buffers.shutdown();
     used_buffers.shutdown();
     used_secondary_command_buffers.shutdown();
 }
@@ -1031,16 +1054,24 @@ void CommandBufferManager::reset_pools( u32 frame_index ) {
     }
 }
 
-CommandBuffer* CommandBufferManager::get_command_buffer( u32 frame, u32 thread_index, bool begin ) {
-    const u32 pool_index = pool_from_indices( frame, thread_index );
-    u32 current_used_buffer = used_buffers[ pool_index ];
-    // TODO: how to handle fire-and-forget command buffers ?
-    RASSERT( current_used_buffer < num_command_buffers_per_thread );
-    if ( begin ) {
-        used_buffers[ pool_index ] = current_used_buffer + 1;
+CommandBuffer* CommandBufferManager::get_command_buffer( u32 frame, u32 thread_index, bool begin, bool compute) {
+    CommandBuffer* cb = nullptr;
+
+    if ( compute ) {
+        RASSERT( thread_index == 0 );
+        cb = &compute_command_buffers[ frame ];
+    } else {
+        const u32 pool_index = pool_from_indices( frame, thread_index );
+        u32 current_used_buffer = used_buffers[ pool_index ];
+        // TODO: how to handle fire-and-forget command buffers ?
+        RASSERT( current_used_buffer < num_command_buffers_per_thread );
+        if ( begin ) {
+            used_buffers[ pool_index ] = current_used_buffer + 1;
+        }
+
+        cb = &command_buffers[ ( pool_index * num_command_buffers_per_thread ) + current_used_buffer ];
     }
 
-    CommandBuffer* cb = &command_buffers[ ( pool_index * num_command_buffers_per_thread ) + current_used_buffer ];
     if ( begin ) {
         cb->reset();
         cb->begin();
@@ -1050,11 +1081,14 @@ CommandBuffer* CommandBufferManager::get_command_buffer( u32 frame, u32 thread_i
         thread_pools->time_queries->reset();
         vkCmdResetQueryPool( cb->vk_command_buffer, thread_pools->vulkan_timestamp_query_pool, 0, thread_pools->time_queries->time_queries.size );
 
-        // Pipeline statistics
-        vkCmdResetQueryPool( cb->vk_command_buffer, thread_pools->vulkan_pipeline_stats_query_pool, 0, GpuPipelineStatistics::Count );
+        if ( !compute ) {
+            // Pipeline statistics
+            vkCmdResetQueryPool( cb->vk_command_buffer, thread_pools->vulkan_pipeline_stats_query_pool, 0, GpuPipelineStatistics::Count );
 
-        vkCmdBeginQuery( cb->vk_command_buffer, thread_pools->vulkan_pipeline_stats_query_pool, 0, 0 );
+            vkCmdBeginQuery( cb->vk_command_buffer, thread_pools->vulkan_pipeline_stats_query_pool, 0, 0 );
+        }
     }
+
     return cb;
 }
 

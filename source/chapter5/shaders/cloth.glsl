@@ -44,10 +44,14 @@ layout ( set = MATERIAL_SET, binding = 4 ) readonly buffer IndexData {
 
 #if defined(COMPUTE)
 
-layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+#define GROUP_SIZE 32
+
+layout (local_size_x = GROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
 void main() {
-    uint sim_steps = uint( 10 );
-    float dt = 1.0 / 600.0;
+    uint sim_steps = uint( 5 );
+    float dt = 1.0 / ( 60.0 * float( sim_steps ) );
+
+    uint current_thread = gl_LocalInvocationID.x;
 
     vec3 fixed_vertex_1 = vec3( 0.0,  1.0, -1.0 );
     vec3 fixed_vertex_2 = vec3( 0.0, -1.0, -1.0 );
@@ -58,7 +62,7 @@ void main() {
     vec3 g = vec3( 0.0, -9.8, 0.0 );
 
     if ( reset_simulation == uint( 1 ) ) {
-        for ( uint v = 0; v < vertex_count; ++v ) {
+        for ( uint v = current_thread; v < vertex_count; v += GROUP_SIZE ) {
             physics_vertices[ v ].position = physics_vertices[ v ].start_position;
             physics_vertices[ v ].previous_position = physics_vertices[ v ].start_position;
             physics_vertices[ v ].velocity = vec3( 0, 0, 0 );
@@ -66,9 +70,11 @@ void main() {
         }
     }
 
+    barrier();
+
     for ( uint s = 0; s < sim_steps; ++s ) {
         // First calculate the force to apply to each vertex
-        for ( uint v = 0; v < vertex_count; ++v ) {
+        for ( uint v = current_thread; v < vertex_count; v+= GROUP_SIZE ) {
             if ( ( physics_vertices[ v ].start_position == fixed_vertex_1 ) || ( physics_vertices[ v ].start_position == fixed_vertex_2 )
                 // NOTE(marco): uncomment these lines to make the cloth behave like a sail
                 // || ( physics_vertices[ v ].start_position == fixed_vertex_3 ) || ( physics_vertices[ v ].start_position == fixed_vertex_4 )
@@ -102,13 +108,17 @@ void main() {
             force += viscous_damping;
             force += viscous_velocity;
 
+            barrier();
+
             physics_vertices[ v ].force = force;
         }
 
         // Then update their position
-        for ( uint v = 0; v < vertex_count; ++v ) {
+        for ( uint v = current_thread; v < vertex_count; v+= GROUP_SIZE ) {
             vec3 previous_position = physics_vertices[ v ].previous_position;
             vec3 current_position = physics_vertices[ v ].position;
+
+            barrier();
 
             // Verlet integration
             vec3 new_position = current_position * 2.0;
@@ -122,7 +132,7 @@ void main() {
         }
     }
 
-    for ( uint i = 0; i < index_count; i += 3 ) {
+    for ( uint i = current_thread * 3; i < index_count; i += GROUP_SIZE * 3 ) {
         uint i0 = indices[ i + 0 ];
         uint i1 = indices[ i + 1 ];
         uint i2 = indices[ i + 2 ];
@@ -142,7 +152,7 @@ void main() {
         physics_vertices[ i2 ].normal = normalize( physics_vertices[ i2 ].normal + n );
     }
 
-    for ( uint v = 0; v < vertex_count; ++v ) {
+    for ( uint v = current_thread; v < vertex_count; v+= GROUP_SIZE ) {
         positions[ v * 3 + 0 ] = physics_vertices[ v ].position.x;
         positions[ v * 3 + 1 ] = physics_vertices[ v ].position.y;
         positions[ v * 3 + 2 ] = physics_vertices[ v ].position.z;

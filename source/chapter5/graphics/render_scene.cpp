@@ -848,7 +848,7 @@ CommandBuffer* RenderScene::update_physics( f32 delta_time, f32 air_density, f32
             }
 
             if ( cb == nullptr ) {
-                cb = gpu.get_command_buffer( 0, gpu.current_frame, true );
+                cb = gpu.get_command_buffer( 0, gpu.current_frame, true, true /*compute*/ );
 
                 cb->push_marker( "Frame" );
                 cb->push_marker( "async" );
@@ -870,10 +870,7 @@ CommandBuffer* RenderScene::update_physics( f32 delta_time, f32 air_density, f32
         cb->pop_marker();
         cb->pop_marker();
 
-        // If marker are present, then queries are as well.
-        if ( cb->thread_frame_pool->time_queries->allocated_time_query ) {
-            vkCmdEndQuery( cb->vk_command_buffer, cb->thread_frame_pool->vulkan_pipeline_stats_query_pool, 0 );
-        }
+        // Graphics queries not available in compute only queues.
 
         cb->end();
     }

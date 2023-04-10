@@ -95,7 +95,7 @@ struct CommandBufferManager {
 
     void                    reset_pools( u32 frame_index );
 
-    CommandBuffer*          get_command_buffer( u32 frame, u32 thread_index, bool begin );
+    CommandBuffer*          get_command_buffer( u32 frame, u32 thread_index, bool begin, bool compute );
     CommandBuffer*          get_secondary_command_buffer( u32 frame, u32 thread_index );
 
     u16                     pool_from_index( u32 index ) { return (u16)index / num_pools_per_frame; }
@@ -103,6 +103,7 @@ struct CommandBufferManager {
 
     Array<CommandBuffer>    command_buffers;
     Array<CommandBuffer>    secondary_command_buffers;
+    Array<CommandBuffer>    compute_command_buffers;
     Array<u8>               used_buffers;       // Track how many buffers were used per thread per frame.
     Array<u8>               used_secondary_command_buffers;
 

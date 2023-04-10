@@ -272,7 +272,7 @@ void GpuVisualProfiler::imgui_draw() {
                      stat_values[ GpuPipelineStatistics::PrimitiveCount ], stat_unit_name );
 
         ImGui::Text( "Clipping: Invocations %f%s, Visible Primitives %f%s, Visible Perc %3.1f", stat_values[ GpuPipelineStatistics::ClippingInvocations ], stat_unit_name,
-                     stat_values[ GpuPipelineStatistics::ClippingPrimitives ], stat_unit_name, 
+                     stat_values[ GpuPipelineStatistics::ClippingPrimitives ], stat_unit_name,
                      stat_values[ GpuPipelineStatistics::ClippingPrimitives ] / stat_values[ GpuPipelineStatistics::ClippingInvocations ] * 100.0f, stat_unit_name );
 
         ImGui::Text( "Invocations: Vertex Shaders %f%s, Fragment Shaders %f%s, Compute Shaders %f%s", stat_values[ GpuPipelineStatistics::VertexShaderInvocations ], stat_unit_name,
@@ -291,26 +291,29 @@ void GpuVisualProfiler::imgui_draw() {
 
 // GPUTimeQueriesManager //////////////////////////////////////////////////
 
-void GPUTimeQueriesManager::init( GpuThreadFramePools* thread_frame_pools_, Allocator* allocator_, u16 queries_per_thread_, u16 num_threads_, u16 max_frames ) {
+void GPUTimeQueriesManager::init( GpuThreadFramePools* thread_frame_pools_, GpuThreadFramePools* compute_frame_pools_, Allocator* allocator_, u16 queries_per_thread_, u16 num_threads_, u16 max_frames ) {
 
     allocator = allocator_;
     thread_frame_pools = thread_frame_pools_;
+    compute_frame_pools = compute_frame_pools_;
     num_threads = num_threads_;
     queries_per_thread = queries_per_thread_;
-    queries_per_frame = queries_per_thread_ * num_threads_;
+    queries_per_frame = queries_per_thread_ * ( num_threads_  + 1 /*compute*/ );
 
     const u32 total_time_queries = queries_per_frame * max_frames;
     const sizet allocated_size = sizeof( GPUTimeQuery ) * total_time_queries;
     u8* memory = rallocam( allocated_size, allocator );
 
+    // NOTE(marco): we have ( queries_per_thread * num_threads ) query entries for graphics,
+    // we then have max_frames entries at the end for compute.
     timestamps = ( GPUTimeQuery* )memory;
     memset( timestamps, 0, sizeof( GPUTimeQuery ) * total_time_queries );
 
-    const u32 num_pools = num_threads * max_frames;
+    const u32 num_pools = ( num_threads_  + 1 /*compute*/ ) * max_frames;
     query_trees.init( allocator, num_pools, num_pools );
 
     for ( u32 i = 0; i < num_pools; ++i ) {
-        
+
         GpuTimeQueryTree& query_tree = query_trees[ i ];
         query_tree.set_queries( &timestamps[i * queries_per_thread], queries_per_thread );
     }
@@ -340,7 +343,17 @@ u32 GPUTimeQueriesManager::resolve( u32 current_frame, GPUTimeQuery* timestamps_
             copied_timestamps += time_query->allocated_time_query;
         }
     }
-    
+
+    {
+        const u32 pool_index = current_frame;
+        GpuThreadFramePools& thread_pools = compute_frame_pools[ pool_index ];
+        GpuTimeQueryTree* time_query = thread_pools.time_queries;
+        if ( time_query && time_query->allocated_time_query ) {
+            raptor::memory_copy( timestamps_to_fill + copied_timestamps, &timestamps[ ( queries_per_thread * num_threads ) + pool_index ], sizeof( GPUTimeQuery ) * time_query->allocated_time_query );
+            copied_timestamps += time_query->allocated_time_query;
+        }
+    }
+
     return copied_timestamps;
 }
 
@@ -358,7 +371,7 @@ void GpuTimeQueryTree::set_queries( GPUTimeQuery* time_queries_, u32 count ) {
 }
 
 GPUTimeQuery* GpuTimeQueryTree::push( cstring name ) {
-    
+
     GPUTimeQuery& time_query = time_queries[ allocated_time_query ];
     time_query.start_query_index = allocated_time_query * 2;
     time_query.end_query_index = time_query.start_query_index + 1;

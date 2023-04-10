@@ -270,9 +270,9 @@ int main( int argc, char** argv ) {
 
     f32 spring_stiffness = 10000.0f;
     f32 spring_damping = 5000.0f;
-    f32 air_density = 2.0f;
+    f32 air_density = 10.0f;
     bool reset_simulation = false;
-    vec3s wind_direction{ -2.0f, 0.0f, 0.0f };
+    vec3s wind_direction{ -5.0f, 0.0f, 0.0f };
 
     while ( !window.requested_exit ) {
         ZoneScopedN("RenderLoop");

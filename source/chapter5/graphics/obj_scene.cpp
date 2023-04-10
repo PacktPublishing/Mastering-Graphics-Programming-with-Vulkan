@@ -465,6 +465,8 @@ void ObjScene::init( cstring filename, cstring path, Allocator* resident_allocat
         meshes.push( render_mesh );
     }
 
+    materials.shutdown();
+
     VkBufferUsageFlags flags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 
     // Positions

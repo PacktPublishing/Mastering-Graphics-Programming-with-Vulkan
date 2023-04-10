@@ -35,7 +35,7 @@ struct GpuTimeQueryTree {
     GPUTimeQuery*                   pop();
 
     ArrayView<GPUTimeQuery>         time_queries; // Allocated externally
-    
+
     u16                             current_time_query   = 0;
     u16                             allocated_time_query = 0;
     u16                             depth                = 0;
@@ -65,7 +65,7 @@ struct GpuPipelineStatistics {
 //
 struct GPUTimeQueriesManager {
 
-    void                            init( GpuThreadFramePools* thread_frame_pools, Allocator* allocator, u16 queries_per_thread, u16 num_threads, u16 max_frames );
+    void                            init( GpuThreadFramePools* thread_frame_pools, GpuThreadFramePools* compute_frame_pools, Allocator* allocator, u16 queries_per_thread, u16 num_threads, u16 max_frames );
     void                            shutdown();
 
     void                            reset();
@@ -75,6 +75,7 @@ struct GPUTimeQueriesManager {
 
     Allocator*                      allocator                   = nullptr;
     GpuThreadFramePools*            thread_frame_pools          = nullptr;
+    GpuThreadFramePools*            compute_frame_pools         = nullptr;
     GPUTimeQuery*                   timestamps                  = nullptr;
 
     GpuPipelineStatistics           frame_pipeline_statistics;  // Per frame statistics as sum of per-frame ones.
