@@ -3351,8 +3351,6 @@ void GpuDevice::create_swapchain() {
         }
 
         util_add_image_barrier( this, command_buffer->vk_command_buffer, color->vk_image, RESOURCE_STATE_UNDEFINED, RESOURCE_STATE_PRESENT, 0, 1, false );
-
-        util_add_image_barrier( this, command_buffer->vk_command_buffer, depth_stencil_texture->vk_image, RESOURCE_STATE_UNDEFINED, RESOURCE_STATE_PRESENT, 0, 1, true );
     }
 
     vkEndCommandBuffer( command_buffer->vk_command_buffer );
@@ -3582,7 +3580,7 @@ void GpuDevice::resize_texture_3d( TextureHandle texture, u32 width, u32 height,
     // Update handle so it can be used to update bindless to dummy texture
     // and delete the old image and image view.
     vk_texture_to_delete->handle = texture_to_delete;
-    
+
     // Re-create image in place.
     TextureCreation tc;
     tc.set_flags( vk_texture->flags ).set_format_type( vk_texture->vk_format, vk_texture->type )
