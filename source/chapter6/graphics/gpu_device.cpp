@@ -2750,8 +2750,6 @@ void GpuDevice::create_swapchain() {
         }
 
         util_add_image_barrier( this, command_buffer->vk_command_buffer, color->vk_image, RESOURCE_STATE_UNDEFINED, RESOURCE_STATE_PRESENT, 0, 1, false );
-
-        util_add_image_barrier( this, command_buffer->vk_command_buffer, depth_stencil_texture->vk_image, RESOURCE_STATE_UNDEFINED, RESOURCE_STATE_PRESENT, 0, 1, true );
     }
 
     vkEndCommandBuffer( command_buffer->vk_command_buffer );

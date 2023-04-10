@@ -1783,7 +1783,6 @@ static void vulkan_create_swapchain_pass( GpuDevice& gpu, const RenderPassCreati
     for ( size_t i = 0; i < gpu.vulkan_swapchain_image_count; i++ ) {
         transition_image_layout( command_buffer->vk_command_buffer, gpu.vulkan_swapchain_images[ i ], gpu.vulkan_surface_format.format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, false );
     }
-    transition_image_layout( command_buffer->vk_command_buffer, depth_texture_vk->vk_image, depth_texture_vk->vk_format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, true );
 
     vkEndCommandBuffer( command_buffer->vk_command_buffer );
 
