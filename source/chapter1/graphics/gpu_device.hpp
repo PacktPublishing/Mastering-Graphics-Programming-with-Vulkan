@@ -100,11 +100,11 @@ struct DeviceCreation {
 struct GpuDevice : public Service {
 
     static GpuDevice*               instance();
-    
+
     // Init/Terminate methods
     void                            init( const DeviceCreation& creation );
     void                            shutdown();
-    
+
     // Creation/Destruction of resources /////////////////////////////////
     BufferHandle                    create_buffer( const BufferCreation& creation );
     TextureHandle                   create_texture( const TextureCreation& creation );
@@ -147,6 +147,8 @@ struct GpuDevice : public Service {
 
     void                            frame_counters_advance();
 
+    bool                            get_family_queue( VkPhysicalDevice physical_device );
+
     VkShaderModuleCreateInfo        compile_shader( cstring code, u32 code_size, VkShaderStageFlagBits stage, cstring name );
 
     // Swapchain //////////////////////////////////////////////////////////
@@ -184,7 +186,7 @@ struct GpuDevice : public Service {
     const RenderPassOutput&         get_swapchain_output() const                    { return swapchain_output; }
 
     VkRenderPass                    get_vulkan_render_pass( const RenderPassOutput& output, cstring name );
-    
+
     // Names and markers /////////////////////////////////////////////////
     void                            set_resource_name( VkObjectType object_type, uint64_t handle, const char* name );
     void                            push_marker( VkCommandBuffer command_buffer, cstring name );
@@ -227,7 +229,7 @@ struct GpuDevice : public Service {
     // Dummy resources
     TextureHandle                   dummy_texture;
     BufferHandle                    dummy_constant_buffer;
-    
+
     RenderPassOutput                swapchain_output;
 
     StringBuffer                    string_buffer;
@@ -263,7 +265,7 @@ struct GpuDevice : public Service {
 
     static constexpr cstring        k_name                              = "raptor_gpu_service";
 
-    
+
     VkAllocationCallbacks*          vulkan_allocation_callbacks;
     VkInstance                      vulkan_instance;
     VkPhysicalDevice                vulkan_physical_device;
@@ -277,7 +279,7 @@ struct GpuDevice : public Service {
     VkImage                         vulkan_swapchain_images[ k_max_swapchain_images ];
     VkImageView                     vulkan_swapchain_image_views[ k_max_swapchain_images ];
     VkFramebuffer                   vulkan_swapchain_framebuffers[ k_max_swapchain_images ];
-    
+
     VkQueryPool                     vulkan_timestamp_query_pool;
     // Per frame synchronization
     VkSemaphore                     vulkan_render_complete_semaphore[ k_max_swapchain_images ];
@@ -299,7 +301,7 @@ struct GpuDevice : public Service {
     VkDebugUtilsMessengerEXT        vulkan_debug_utils_messenger;
 
     u32                             vulkan_image_index;
-    
+
     VmaAllocator                    vma_allocator;
 
     // These are dynamic - so that workload can be handled correctly.
