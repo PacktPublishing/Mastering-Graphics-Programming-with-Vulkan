@@ -38,8 +38,9 @@ raptor::DescriptorSetLayoutHandle       cube_dsl;
 
 f32 rx, ry;
 
-struct MaterialData {
+struct alignas( 16 ) MaterialData {
     vec4s base_color_factor;
+    vec3s scale;
 };
 
 struct MeshDraw {
@@ -254,6 +255,11 @@ layout(std140, binding = 0) uniform LocalConstants {
     vec4 light;
 };
 
+layout(std140, binding = 4) uniform MaterialConstant {
+    vec4 base_color_factor;
+    vec3 scale;
+};
+
 layout(location=0) in vec3 position;
 layout(location=1) in vec4 tangent;
 layout(location=2) in vec3 normal;
@@ -265,7 +271,7 @@ layout (location = 2) out vec4 vTangent;
 layout (location = 3) out vec4 vPosition;
 
 void main() {
-    gl_Position = vp * m * vec4(position, 1);
+    gl_Position = vp * m * vec4(position * scale, 1);
     vPosition = m * vec4(position, 1.0);
     vTexcoord0 = texCoord0;
     vNormal = mat3(mInverse) * normal;
@@ -284,6 +290,7 @@ layout(std140, binding = 0) uniform LocalConstants {
 
 layout(std140, binding = 4) uniform MaterialConstant {
     vec4 base_color_factor;
+    vec3 scale;
 };
 
 layout (binding = 1) uniform sampler2D diffuseTexture;
@@ -437,12 +444,31 @@ void main() {
 
         cube_pipeline = gpu.create_pipeline( pipeline_creation );
 
-        for ( u32 mesh_index = 0; mesh_index < scene.meshes_count; ++mesh_index ) {
-            MeshDraw mesh_draw{ };
+        glTF::Scene& root_gltf_scene = scene.scenes[ scene.scene ];
 
-            glTF::Mesh& mesh = scene.meshes[ mesh_index ];
+        for ( u32 node_index = 0; node_index < root_gltf_scene.nodes_count; ++node_index )
+        {
+            glTF::Node& node = scene.nodes[ root_gltf_scene.nodes[ node_index ] ];
+
+            if ( node.mesh == glTF::INVALID_INT_VALUE ) {
+                continue;
+            }
+
+            // TODO(marco): children
+
+            glTF::Mesh& mesh = scene.meshes[ node.mesh ];
+
+            vec3s node_scale{ 1.0f, 1.0f, 1.0f };
+            if ( node.scale_count != 0 ) {
+                RASSERT( node.scale_count == 3 );
+                node_scale = vec3s{ node.scale[0], node.scale[1], node.scale[2] };
+            }
 
             for ( u32 primitive_index = 0; primitive_index < mesh.primitives_count; ++primitive_index ) {
+                MeshDraw mesh_draw{ };
+
+                mesh_draw.material_data.scale = node_scale;
+
                 glTF::MeshPrimitive& mesh_primitive = mesh.primitives[ primitive_index ];
 
                 i32 position_accessor_index = gltf_get_attribute_accessor_index( mesh_primitive.attributes, mesh_primitive.attribute_count, "POSITION" );
@@ -580,7 +606,7 @@ void main() {
     f32 yaw = 0.0f;
     f32 pitch = 0.0f;
 
-    float model_scale = 0.008f;
+    float model_scale = 1.0f;
 
     while ( !window.requested_exit ) {
         ZoneScoped;
