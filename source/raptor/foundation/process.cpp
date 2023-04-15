@@ -179,6 +179,8 @@ bool process_execute( cstring working_directory, cstring process_fullpath, cstri
 
     chdir( current_dir );
 
+    full_cmd_buffer.shutdown();
+
     return execute_success;
 }
 
