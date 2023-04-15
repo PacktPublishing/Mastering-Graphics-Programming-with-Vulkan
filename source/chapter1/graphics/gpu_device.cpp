@@ -201,6 +201,11 @@ static VkBool32 debug_utils_callback( VkDebugUtilsMessageSeverityFlagBitsEXT sev
                                                             const VkDebugUtilsMessengerCallbackDataEXT* callback_data,
                                                             void* user_data ) {
     rprint( " MessageID: %s %i\nMessage: %s\n\n", callback_data->pMessageIdName, callback_data->messageIdNumber, callback_data->pMessage );
+
+    if ( severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT ) {
+        // __debugbreak();
+    }
+
     return VK_FALSE;
 }
 
@@ -526,13 +531,13 @@ void GpuDevice::init( const DeviceCreation& creation ) {
     vkCreateQueryPool( vulkan_device, &vqpci, vulkan_allocation_callbacks, &vulkan_timestamp_query_pool );
 
     //// Init pools
-    buffers.init( allocator, 512, sizeof( Buffer ) );
+    buffers.init( allocator, 4096, sizeof( Buffer ) );
     textures.init( allocator, 512, sizeof( Texture ) );
     render_passes.init( allocator, 256, sizeof( RenderPass ) );
     descriptor_set_layouts.init( allocator, 128, sizeof( DesciptorSetLayout ) );
     pipelines.init( allocator, 128, sizeof( Pipeline ) );
     shaders.init( allocator, 128, sizeof( ShaderState ) );
-    descriptor_sets.init( allocator, 128, sizeof( DesciptorSet ) );
+    descriptor_sets.init( allocator, 256, sizeof( DesciptorSet ) );
     samplers.init( allocator, 32, sizeof( Sampler ) );
     //command_buffers.init( allocator, 128, sizeof( CommandBuffer ) );
 

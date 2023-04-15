@@ -304,7 +304,7 @@ void ImGuiService::render( raptor::CommandBuffer& commands ) {
     commands.bind_pass( gpu->get_swapchain_pass() );
     commands.bind_pipeline( g_imgui_pipeline );
     commands.bind_vertex_buffer( g_vb, 0, 0 );
-    commands.bind_index_buffer( g_ib, 0 );
+    commands.bind_index_buffer( g_ib, 0, VK_INDEX_TYPE_UINT16 );
 
     const Viewport viewport = { 0, 0, (u16)fb_width, (u16)fb_height, 0.0f, 1.0f };
     commands.set_viewport( &viewport );

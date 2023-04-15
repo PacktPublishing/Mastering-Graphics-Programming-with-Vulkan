@@ -99,7 +99,7 @@ void Renderer::init( const RendererCreation& creation ) {
     height = gpu->swapchain_height;
 
     textures.init( creation.allocator, 512 );
-    buffers.init( creation.allocator, 512 );
+    buffers.init( creation.allocator, 4096 );
     samplers.init( creation.allocator, 128 );
 
     resource_cache.init( creation.allocator );

@@ -84,7 +84,7 @@ void CommandBuffer::bind_vertex_buffer( BufferHandle handle_, u32 binding, u32 o
     vkCmdBindVertexBuffers( vk_command_buffer, binding, 1, &vk_buffer, offsets );
 }
 
-void CommandBuffer::bind_index_buffer( BufferHandle handle_, u32 offset_ ) {
+void CommandBuffer::bind_index_buffer( BufferHandle handle_, u32 offset_, VkIndexType index_type ) {
 
     Buffer* buffer = device->access_buffer( handle_ );
 
@@ -95,7 +95,7 @@ void CommandBuffer::bind_index_buffer( BufferHandle handle_, u32 offset_ ) {
         vk_buffer = parent_buffer->vk_buffer;
         offset = buffer->global_offset;
     }
-    vkCmdBindIndexBuffer( vk_command_buffer, vk_buffer, offset, VkIndexType::VK_INDEX_TYPE_UINT16 );
+    vkCmdBindIndexBuffer( vk_command_buffer, vk_buffer, offset, index_type );
 }
 
 void CommandBuffer::bind_descriptor_set( DescriptorSetHandle* handles, u32 num_lists, u32* offsets, u32 num_offsets ) {
