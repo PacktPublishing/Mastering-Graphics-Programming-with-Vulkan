@@ -106,7 +106,7 @@ void GpuVisualProfiler::imgui_draw() {
         f32 widget_height = canvas_size.y - 100;
 
         f32 legend_width = 200;
-        f32 graph_width = canvas_size.x - legend_width;
+        f32 graph_width = fabsf( canvas_size.x - legend_width );
         u32 rect_width = ceilu32( graph_width / max_frames );
         i32 rect_x = ceili32( graph_width - rect_width );
 
