@@ -1007,7 +1007,7 @@ void main() {
             MapBufferParameters cb_map = { cube_cb, 0, 0 };
             float* cb_data = ( float* )gpu.map_buffer( cb_map );
             if ( cb_data ) {
-                if ( input_handler.is_mouse_down( MouseButtons::MOUSE_BUTTONS_LEFT ) ) {
+                if ( input_handler.is_mouse_down( MouseButtons::MOUSE_BUTTONS_LEFT ) && !ImGui::GetIO().WantCaptureMouse) {
                     pitch += ( input_handler.mouse_position.y - input_handler.previous_mouse_position.y ) * 0.1f;
                     yaw += ( input_handler.mouse_position.x - input_handler.previous_mouse_position.x ) * 0.3f;
 
