@@ -7,7 +7,7 @@ import sys
 import platform
 import subprocess
 
-Python = "python" if platform.system() == "Windows" else "python3"
+Python = sys.executable if not " " in sys.executable else '"{}"'.format(sys.executable)
 
 def executeCommandSilent(command):
 	out = open(os.devnull, 'w')
