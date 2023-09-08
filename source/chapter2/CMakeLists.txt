@@ -95,9 +95,19 @@ add_custom_target(Chapter2SpvShaders
     SOURCES ${GLSL_SHADERS}
 )
 
+if (WIN32)
+    file(TO_NATIVE_PATH "$ENV{VULKAN_SDK}/bin/glslc.exe" GLSL_COMPILER)
+else()
+    file(TO_NATIVE_PATH "$ENV{VULKAN_SDK}/bin/glslc" GLSL_COMPILER)
+endif()
+
+if (NOT EXISTS ${GLSL_COMPILER})
+    message(FATAL_ERROR "${GLSL_COMPILER} is not a valid path. Please make sure the VULKAN_SDK environment variable is set.")
+endif()
+
 foreach (GLSL_SHADER ${GLSL_SHADERS})
     add_custom_command(TARGET Chapter2SpvShaders
-        COMMAND $ENV{VULKAN_SDK}/bin/glslc ${GLSL_SHADER}
+        COMMAND ${GLSL_COMPILER} ${GLSL_SHADER}
         DEPENDS ${GLSL_SHADER}
     )
 endforeach()
