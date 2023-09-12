@@ -700,6 +700,10 @@ void FrameGraph::compile() {
         FrameGraphNode* node = builder->access_node( nodes[ i ] );
         RASSERT( node->enabled );
 
+        if ( node->compute ) {
+            continue;
+        }
+
         if ( node->render_pass.index == k_invalid_index ) {
             create_render_pass( this, node );
         }
