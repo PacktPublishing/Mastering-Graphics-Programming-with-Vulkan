@@ -3870,6 +3870,11 @@ void GpuDevice::new_frame() {
         vkResetFences( vulkan_device, fence_count, fences );
     }
 
+    VkResult result = vkAcquireNextImageKHR( vulkan_device, vulkan_swapchain, UINT64_MAX, vulkan_image_acquired_semaphore, VK_NULL_HANDLE, &vulkan_image_index );
+    if ( result == VK_ERROR_OUT_OF_DATE_KHR ) {
+        resize_swapchain();
+    }
+
     // Command pool reset
     command_buffer_ring.reset_pools( current_frame );
     // Dynamic memory update
@@ -3900,16 +3905,6 @@ void GpuDevice::new_frame() {
 }
 
 void GpuDevice::present( CommandBuffer* async_compute_command_buffer ) {
-
-    VkResult result = vkAcquireNextImageKHR( vulkan_device, vulkan_swapchain, UINT64_MAX, vulkan_image_acquired_semaphore, VK_NULL_HANDLE, &vulkan_image_index );
-    if ( result == VK_ERROR_OUT_OF_DATE_KHR ) {
-        resize_swapchain();
-
-        // Advance frame counters that are skipped during this frame.
-        frame_counters_advance();
-
-        return;
-    }
 
     VkSemaphore* render_complete_semaphore = &vulkan_render_complete_semaphore[ current_frame ];
 
@@ -4251,7 +4246,7 @@ void GpuDevice::present( CommandBuffer* async_compute_command_buffer ) {
     present_info.pSwapchains = swap_chains;
     present_info.pImageIndices = &vulkan_image_index;
     present_info.pResults = nullptr; // Optional
-    result = vkQueuePresentKHR( vulkan_main_queue, &present_info );
+    VkResult result = vkQueuePresentKHR( vulkan_main_queue, &present_info );
 
     RASSERT( result != VK_ERROR_DEVICE_LOST );
 
