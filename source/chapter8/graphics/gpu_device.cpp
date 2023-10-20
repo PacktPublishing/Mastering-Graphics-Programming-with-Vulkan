@@ -677,7 +677,6 @@ void GpuDevice::init( const GpuDeviceCreation& creation ) {
         for ( u32 j = 0; j < supported_count; j++ ) {
             if ( supported_formats[ j ].format == surface_image_formats[ i ] && supported_formats[ j ].colorSpace == surface_color_space ) {
                 vulkan_surface_format = supported_formats[ j ];
-                swapchain_output.color( surface_image_formats[ j ], VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, RenderPassOperation::Clear );
                 format_found = true;
                 break;
             }
@@ -698,6 +697,8 @@ void GpuDevice::init( const GpuDeviceCreation& creation ) {
 
     // Final use of temp allocator, free all temporary memory created here.
     temp_allocator->free_marker( initial_temp_allocator_marker );
+
+    swapchain_output.color( vulkan_surface_format.format, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, RenderPassOperation::Clear );
 
     set_present_mode( present_mode );
 
