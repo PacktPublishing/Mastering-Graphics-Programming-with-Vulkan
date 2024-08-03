@@ -121,7 +121,7 @@ void main() {
         roughness = metallic_roughness_occlusion_factor.x;
         metalness = metallic_roughness_occlusion_factor.y;
 
-        if (textures.w != INVALID_TEXTURE_INDEX) {
+        if (textures.y != INVALID_TEXTURE_INDEX) {
             vec4 rm = texture(global_textures[nonuniformEXT(textures.y)], vTexcoord0);
 
             // Green channel contains roughness values
