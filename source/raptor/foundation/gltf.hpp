@@ -12,9 +12,7 @@ static const char* kDefault3DModel = "../deps/src/glTF-Sample-Models/2.0/Sponza/
         argv[1] = const_cast<char*>(kDefault3DModel);\
     }\
     else {\
-       printf("Unable to find default model. Please see "\
-       "https://github.com/PacktPublishing/Mastering-Graphics-Programming-with-Vulkan/tree/a03272b227a64a85a7b32b89ee5362671835f7d6?tab=readme-ov-file#getting-the-code"\
-       "and make sure you've run `python ./bootstrap.py` to download all the additional assets for this project.\n");\
+       printf("Unable to find default model. Please check the README in the root folder and make sure you've run `python ./bootstrap.py` to download all the additional assets for this project.\n");\
        exit(-1);\
     }
 
