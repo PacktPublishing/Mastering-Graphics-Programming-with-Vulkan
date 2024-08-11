@@ -292,7 +292,7 @@ struct GpuDevice : public Service {
 
     // Per frame synchronization
     VkSemaphore                     vulkan_render_complete_semaphore[ k_max_frames ];
-    VkSemaphore                     vulkan_image_acquired_semaphore;
+    VkSemaphore                     vulkan_image_acquired_semaphore[ k_max_frames ];
     VkSemaphore                     vulkan_graphics_semaphore;
     VkFence                         vulkan_command_buffer_executed_fence[ k_max_frames ];
 

@@ -858,12 +858,13 @@ void GpuDevice::init( const GpuDeviceCreation& creation ) {
     pending_sparse_memory_info.init( allocator, 1024 );
 
     VkSemaphoreCreateInfo semaphore_info{ VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
-    vkCreateSemaphore( vulkan_device, &semaphore_info, vulkan_allocation_callbacks, &vulkan_image_acquired_semaphore );
+
     vkCreateSemaphore( vulkan_device, &semaphore_info, vulkan_allocation_callbacks, &vulkan_bind_semaphore );
 
     for ( size_t i = 0; i < k_max_frames; i++ ) {
 
         vkCreateSemaphore( vulkan_device, &semaphore_info, vulkan_allocation_callbacks, &vulkan_render_complete_semaphore[ i ] );
+        vkCreateSemaphore( vulkan_device, &semaphore_info, vulkan_allocation_callbacks, &vulkan_image_acquired_semaphore[ i ] );
 
         VkFenceCreateInfo fenceInfo{ VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
         fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
@@ -993,6 +994,7 @@ void GpuDevice::shutdown() {
 
     for ( size_t i = 0; i < k_max_frames; i++ ) {
         vkDestroySemaphore( vulkan_device, vulkan_render_complete_semaphore[ i ], vulkan_allocation_callbacks );
+        vkDestroySemaphore( vulkan_device, vulkan_image_acquired_semaphore[ i ], vulkan_allocation_callbacks);
 
         if ( !timeline_semaphore_extension_present ) {
             vkDestroyFence( vulkan_device, vulkan_command_buffer_executed_fence[ i ], vulkan_allocation_callbacks );
@@ -1004,7 +1006,6 @@ void GpuDevice::shutdown() {
         vkDestroySemaphore( vulkan_device, vulkan_compute_semaphore, vulkan_allocation_callbacks );
     }
 
-    vkDestroySemaphore( vulkan_device, vulkan_image_acquired_semaphore, vulkan_allocation_callbacks );
     vkDestroySemaphore( vulkan_device, vulkan_bind_semaphore, vulkan_allocation_callbacks );
 
     gpu_time_queries_manager->shutdown();
@@ -3657,7 +3658,8 @@ void GpuDevice::new_frame() {
         vkResetFences( vulkan_device, fence_count, fences );
     }
 
-    VkResult result = vkAcquireNextImageKHR( vulkan_device, vulkan_swapchain, UINT64_MAX, vulkan_image_acquired_semaphore, VK_NULL_HANDLE, &vulkan_image_index );
+    VkSemaphore image_acquired_semaphore = vulkan_image_acquired_semaphore[current_frame];
+    VkResult result = vkAcquireNextImageKHR( vulkan_device, vulkan_swapchain, UINT64_MAX, image_acquired_semaphore, VK_NULL_HANDLE, &vulkan_image_index );
     if ( result == VK_ERROR_OUT_OF_DATE_KHR ) {
         resize_swapchain();
     }
@@ -3694,6 +3696,7 @@ void GpuDevice::new_frame() {
 void GpuDevice::present( CommandBuffer* async_compute_command_buffer ) {
 
     VkSemaphore* render_complete_semaphore = &vulkan_render_complete_semaphore[ current_frame ];
+    VkSemaphore* image_acquired_semaphore = &vulkan_image_acquired_semaphore[current_frame];
 
     // Copy all commands
     VkCommandBuffer enqueued_command_buffers[ 4 ];
@@ -3853,7 +3856,7 @@ void GpuDevice::present( CommandBuffer* async_compute_command_buffer ) {
 
             Array<VkSemaphoreSubmitInfoKHR> wait_semaphores;
             wait_semaphores.init( allocator, 4 );
-            wait_semaphores.push( { VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR, nullptr, vulkan_image_acquired_semaphore, 0, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR, 0 } );
+            wait_semaphores.push( { VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR, nullptr, *image_acquired_semaphore, 0, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR, 0 } );
 
             if ( wait_for_compute_semaphore ) {
                 wait_semaphores.push( { VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR, nullptr, vulkan_compute_semaphore, last_compute_semaphore_value, VK_PIPELINE_STAGE_2_VERTEX_ATTRIBUTE_INPUT_BIT_KHR, 0 } );
@@ -3893,7 +3896,7 @@ void GpuDevice::present( CommandBuffer* async_compute_command_buffer ) {
             Array<VkPipelineStageFlags> wait_stages;
             wait_stages.init( allocator, 4 );
 
-            wait_semaphores.push( vulkan_image_acquired_semaphore );
+            wait_semaphores.push(*image_acquired_semaphore);
             wait_values.push( 0 );
             wait_stages.push( VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT );
 
@@ -3957,7 +3960,7 @@ void GpuDevice::present( CommandBuffer* async_compute_command_buffer ) {
 
             Array<VkSemaphoreSubmitInfoKHR> wait_semaphores;
             wait_semaphores.init( allocator, 4 );
-            wait_semaphores.push( { VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR, nullptr, vulkan_image_acquired_semaphore, 0, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR, 0 } );
+            wait_semaphores.push( { VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR, nullptr, *image_acquired_semaphore, 0, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR, 0 } );
             wait_semaphores.push( { VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR, nullptr, vulkan_compute_semaphore, 0, VK_PIPELINE_STAGE_2_VERTEX_ATTRIBUTE_INPUT_BIT_KHR, 0 } );
 
             if ( has_pending_sparse_bindings ) {
@@ -3982,7 +3985,7 @@ void GpuDevice::present( CommandBuffer* async_compute_command_buffer ) {
         } else {
             Array<VkSemaphore> wait_semaphores;
             wait_semaphores.init( allocator, 4 );
-            wait_semaphores.push( vulkan_image_acquired_semaphore );
+            wait_semaphores.push( *image_acquired_semaphore );
             wait_semaphores.push( vulkan_compute_semaphore );
 
             Array<VkPipelineStageFlags> wait_stages;
