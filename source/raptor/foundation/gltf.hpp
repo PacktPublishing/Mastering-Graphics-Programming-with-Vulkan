@@ -12,6 +12,7 @@ static const char* kDefault3DModel = "../deps/src/glTF-Sample-Models/2.0/Sponza/
         argv[1] = const_cast<char*>(kDefault3DModel);\
     }\
     else {\
+       printf("Unable to find default model. Please check the README in the root folder and make sure you've run `python ./bootstrap.py` to download all the additional assets for this project.\n");\
        exit(-1);\
     }
 
