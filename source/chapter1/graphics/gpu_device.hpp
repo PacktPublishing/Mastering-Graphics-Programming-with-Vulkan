@@ -283,7 +283,7 @@ struct GpuDevice : public Service {
     VkQueryPool                     vulkan_timestamp_query_pool;
     // Per frame synchronization
     VkSemaphore                     vulkan_render_complete_semaphore[ k_max_swapchain_images ];
-    VkSemaphore                     vulkan_image_acquired_semaphore;
+    VkSemaphore                     vulkan_image_acquired_semaphore[ k_max_swapchain_images ];
     VkFence                         vulkan_command_buffer_executed_fence[ k_max_swapchain_images ];
 
     TextureHandle                   depth_texture;
