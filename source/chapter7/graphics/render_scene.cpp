@@ -2143,7 +2143,7 @@ void RenderScene::upload_gpu_data( UploadGpuDataContext& context ) {
         for ( u32 i = 0; i < k_num_lights; ++i ) {
             const SortedLight& light = sorted_lights[ i ];
 
-            if ( ( light.projected_z >= bin_min && light.projected_z <= bin_max ) ||
+            if ( ( light.projected_z_min <= bin_min && light.projected_z_max >= bin_max ) ||
                  ( light.projected_z_min >= bin_min && light.projected_z_min <= bin_max ) ||
                  ( light.projected_z_max >= bin_min && light.projected_z_max <= bin_max ) ) {
                 if ( i < min_light_id ) {
@@ -2352,7 +2352,7 @@ void RenderScene::upload_gpu_data( UploadGpuDataContext& context ) {
 
         for ( u32 y = first_tile_y; y <= last_tile_y; ++y ) {
             for ( u32 x = first_tile_x; x <= last_tile_x; ++x ) {
-                u32 array_index = y * tile_stride + x;
+                u32 array_index = y * tile_stride + x * k_num_words;
 
                 u32 word_index = i / 32;
                 u32 bit_index = i % 32;
