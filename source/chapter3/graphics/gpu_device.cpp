@@ -584,11 +584,11 @@ void GpuDevice::init( const DeviceCreation& creation ) {
     u8* memory = rallocam( sizeof( GPUTimestampManager ) + sizeof( CommandBuffer* ) * 128, allocator );
 
     VkSemaphoreCreateInfo semaphore_info{ VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
-    vkCreateSemaphore( vulkan_device, &semaphore_info, vulkan_allocation_callbacks, &vulkan_image_acquired_semaphore );
 
     for ( size_t i = 0; i < k_max_swapchain_images; i++ ) {
 
         vkCreateSemaphore( vulkan_device, &semaphore_info, vulkan_allocation_callbacks, &vulkan_render_complete_semaphore[ i ] );
+        vkCreateSemaphore( vulkan_device, &semaphore_info, vulkan_allocation_callbacks, &vulkan_image_acquired_semaphore[ i ] );
 
         VkFenceCreateInfo fenceInfo{ VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
         fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
@@ -680,10 +680,9 @@ void GpuDevice::shutdown() {
 
     for ( size_t i = 0; i < k_max_swapchain_images; i++ ) {
         vkDestroySemaphore( vulkan_device, vulkan_render_complete_semaphore[ i ], vulkan_allocation_callbacks );
+        vkDestroySemaphore(vulkan_device, vulkan_image_acquired_semaphore[ i ], vulkan_allocation_callbacks);
         vkDestroyFence( vulkan_device, vulkan_command_buffer_executed_fence[ i ], vulkan_allocation_callbacks );
     }
-
-    vkDestroySemaphore( vulkan_device, vulkan_image_acquired_semaphore, vulkan_allocation_callbacks );
 
     gpu_timestamp_manager->shutdown();
 
@@ -2737,7 +2736,7 @@ void GpuDevice::new_frame() {
 
     vkResetFences( vulkan_device, 1, render_complete_fence );
 
-    VkResult result = vkAcquireNextImageKHR( vulkan_device, vulkan_swapchain, UINT64_MAX, vulkan_image_acquired_semaphore, VK_NULL_HANDLE, &vulkan_image_index );
+    VkResult result = vkAcquireNextImageKHR( vulkan_device, vulkan_swapchain, UINT64_MAX, vulkan_image_acquired_semaphore[ current_frame ], VK_NULL_HANDLE, &vulkan_image_index);
     if ( result == VK_ERROR_OUT_OF_DATE_KHR ) {
         resize_swapchain();
     }
@@ -2846,7 +2845,7 @@ void GpuDevice::present() {
 
 
     // Submit command buffers
-    VkSemaphore wait_semaphores[] = { vulkan_image_acquired_semaphore };
+    VkSemaphore wait_semaphores[] = { vulkan_image_acquired_semaphore[ current_frame ]};
     VkPipelineStageFlags wait_stages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 
     VkSubmitInfo submit_info = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
