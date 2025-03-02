@@ -738,6 +738,11 @@ int main( int argc, char** argv ) {
             RenderPass* render_pass = gpu.access_render_pass( point_shadows_pass_node->render_pass );
             if ( render_pass ) {
                 render_pass->output.reset().depth( VK_FORMAT_D16_UNORM, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL );
+            } else {
+                RenderPassCreation creation{};
+                creation.set_name("point_shadows_pass");
+                creation.set_depth_stencil_texture(VK_FORMAT_D16_UNORM, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+                point_shadows_pass_node->render_pass = frame_graph.builder->device->create_render_pass(creation);
             }
         }
 
