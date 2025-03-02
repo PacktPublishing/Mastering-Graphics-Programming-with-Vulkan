@@ -188,7 +188,7 @@ vec4 calculate_lighting(vec4 base_colour, vec3 orm, vec3 normal, vec3 emissive, 
     uvec2 tile = position / uint( TILE_SIZE );
 
     uint stride = uint( NUM_WORDS ) * ( uint( resolution.x ) / uint( TILE_SIZE ) );
-    uint address = tile.y * stride + tile.x;
+    uint address = tile.y * stride + tile.x * uint( NUM_WORDS );
 
 #if ENABLE_OPTIMIZATION
     // NOTE(marco): this version has been implemented following:
